@@ -19,7 +19,7 @@ export default (app: Application) => {
         type: DataTypes.STRING
       },
       tags: {
-        type: DataTypes.ARRAY(DataTypes.STRING)
+        type: DataTypes.JSON
       },
       duration: {
         type: DataTypes.INTEGER

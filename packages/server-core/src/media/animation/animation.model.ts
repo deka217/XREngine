@@ -19,7 +19,7 @@ export default (app: Application) => {
         type: DataTypes.STRING
       },
       tags: {
-        type: DataTypes.ARRAY(DataTypes.STRING)
+        type: DataTypes.JSON
       }
     },
     {
@@ -37,7 +37,7 @@ export default (app: Application) => {
       required: true
     })
     ;(animation as any).belongsTo(models.rig, {
-      foreignKey: 'rig',
+      foreignKey: 'rigID',
       required: true
     })
   }

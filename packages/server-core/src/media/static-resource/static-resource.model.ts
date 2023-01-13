@@ -51,13 +51,13 @@ export default (app: Application) => {
         type: DataTypes.STRING
       },
       fullQualitySize: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       lowQualitySize: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       mobileQualitySize: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       licensing: {
         type: DataTypes.STRING
@@ -66,7 +66,7 @@ export default (app: Application) => {
         type: DataTypes.STRING
       },
       tags: {
-        type: DataTypes.ARRAY(DataTypes.STRING)
+        type: DataTypes.JSON
       }
     },
     {

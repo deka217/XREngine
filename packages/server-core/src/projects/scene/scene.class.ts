@@ -207,69 +207,113 @@ export class Scene implements ServiceMethods<any> {
   }
 
   async update(projectName: string, data: UpdateParams, params?: Params): Promise<any> {
-    const { sceneName, sceneData, thumbnailBuffer, storageProviderName } = data
-    logger.info('[scene.update]: ', projectName, data)
-
-    const storageProvider = getStorageProvider(storageProviderName)
-
-    const project = await this.app.service('project').get(projectName, params)
-    if (!project.data) throw new Error(`No project named ${projectName} exists`)
-
-    const newSceneJsonPath = `projects/${projectName}/${sceneName}.scene.json`
-    await storageProvider.putObject({
-      Key: newSceneJsonPath,
-      Body: Buffer.from(
-        JSON.stringify(
-          cleanSceneDataCacheURLs(sceneData ?? (defaultSceneSeed as unknown as SceneJson), storageProvider.cacheDomain)
-        )
-      ),
-      ContentType: 'application/json'
-    })
-
-    if (thumbnailBuffer) {
-      const sceneThumbnailPath = `projects/${projectName}/${sceneName}.thumbnail.jpeg`
-      await storageProvider.putObject({
-        Key: sceneThumbnailPath,
-        Body: thumbnailBuffer as Buffer,
-        ContentType: 'image/jpeg'
-      })
-    }
-
     try {
-      await storageProvider.createInvalidation(
-        sceneAssetFiles.map((asset) => `projects/${projectName}/${sceneName}${asset}`)
-      )
-    } catch (e) {
-      logger.error(e)
-      logger.info(sceneAssetFiles)
-    }
+      console.log('UPDATE PANTS')
+      const {sceneName, sceneData, thumbnailBuffer, storageProviderName} = data
+      logger.info('[scene.update]: ', projectName, data)
+      console.log('data', data)
 
-    if (isDev) {
-      const newSceneJsonPathLocal = path.resolve(
-        appRootPath.path,
-        `packages/projects/projects/${projectName}/${sceneName}.scene.json`
-      )
+      const storageProvider = getStorageProvider(storageProviderName)
 
-      fs.writeFileSync(
-        path.resolve(newSceneJsonPathLocal),
-        JSON.stringify(
-          cleanSceneDataCacheURLs(sceneData ?? (defaultSceneSeed as unknown as SceneJson), storageProvider.cacheDomain),
-          null,
-          2
-        )
-      )
+      const project = await this.app.service('project').get(projectName, params)
+      console.log('project', project.data)
+      if (!project.data) throw new Error(`No project named ${projectName} exists`)
 
-      if (thumbnailBuffer) {
-        const sceneThumbnailPath = path.resolve(
-          appRootPath.path,
-          `packages/projects/projects/${projectName}/${sceneName}.thumbnail.jpeg`
-        )
-        fs.writeFileSync(path.resolve(sceneThumbnailPath), thumbnailBuffer as Buffer)
+      for (const entity in data.sceneData!.entities) {
+        const value = data.sceneData!.entities[entity]
+        console.log('entity value', entity, value)
+        const mediaComponent = value.components.find(component => component.name === 'media')
+        if (mediaComponent) {
+          const volumetricComponent = value.components.find(component => component.name === 'volumetric')
+          const audioComponent = value.components.find(component => component.name === 'volumetric')
+          const videoComponent = value.components.find(component => component.name === 'video')
+          if (volumetricComponent) {
+            if (volumetricComponent.resourceId) {
+              const volumetricResource = await this.app.service('volumetric').Model.findOne({
+                where: {
+                  id: volumetricComponent.resourceId
+                }
+              })
+              if (volumetricResource) {
+                await this.app.service('volumetric').patch(volumetricResource.id, {
+                  name:
+                  tags: volumetricComponent.tags || []
+                })
+              }
+            } else {
+              await this.app.service('volumetric').create({})
+            }
+          }
+        }
       }
-    }
+      const newSceneJsonPath = `projects/${projectName}/${sceneName}.scene.json`
+      await storageProvider.putObject({
+        Key: newSceneJsonPath,
+        Body: Buffer.from(
+            JSON.stringify(
+                cleanSceneDataCacheURLs(sceneData ?? (defaultSceneSeed as unknown as SceneJson), storageProvider.cacheDomain)
+            )
+        ),
+        ContentType: 'application/json'
+      })
 
-    // return scene id for update hooks
-    return { sceneId: `${projectName}/${sceneName}` }
+      console.log('Updated scene in storageProvider')
+
+      if (thumbnailBuffer && Buffer.isBuffer(thumbnailBuffer)) {
+        console.log('Inserting Thumbnail', thumbnailBuffer)
+        const sceneThumbnailPath = `projects/${projectName}/${sceneName}.thumbnail.jpeg`
+        await storageProvider.putObject({
+          Key: sceneThumbnailPath,
+          Body: thumbnailBuffer as Buffer,
+          ContentType: 'image/jpeg'
+        })
+        console.log('Inserted thumbnail')
+      }
+
+      try {
+        console.log('Creating invalidation')
+        await storageProvider.createInvalidation(
+            sceneAssetFiles.map((asset) => `projects/${projectName}/${sceneName}${asset}`)
+        )
+        console.log('Created invalidation')
+      } catch (e) {
+        logger.error(e)
+        logger.info(sceneAssetFiles)
+      }
+
+      if (isDev) {
+        console.log('Writing local files')
+        const newSceneJsonPathLocal = path.resolve(
+            appRootPath.path,
+            `packages/projects/projects/${projectName}/${sceneName}.scene.json`
+        )
+
+        fs.writeFileSync(
+            path.resolve(newSceneJsonPathLocal),
+            JSON.stringify(
+                cleanSceneDataCacheURLs(sceneData ?? (defaultSceneSeed as unknown as SceneJson), storageProvider.cacheDomain),
+                null,
+                2
+            )
+        )
+
+        if (thumbnailBuffer && Buffer.isBuffer(thumbnailBuffer)) {
+          const sceneThumbnailPath = path.resolve(
+              appRootPath.path,
+              `packages/projects/projects/${projectName}/${sceneName}.thumbnail.jpeg`
+          )
+          fs.writeFileSync(path.resolve(sceneThumbnailPath), thumbnailBuffer as Buffer)
+        }
+        console.log('Wrote local files')
+      }
+
+      // return scene id for update hooks
+      console.log('Finished with scene update')
+      return {sceneId: `${projectName}/${sceneName}`}
+    } catch(err) {
+      logger.error(err)
+      throw err
+    }
   }
 
   // async patch(sceneId: NullableId, data: PatchData, params: Params): Promise<SceneDetailInterface> {}
