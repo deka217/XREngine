@@ -14,6 +14,9 @@ import { getStorageProvider } from '../../media/storageprovider/storageprovider'
 import logger from '../../ServerLogger'
 import { cleanString } from '../../util/cleanString'
 import { cleanSceneDataCacheURLs, parseSceneDataCacheURLs } from './scene-parser'
+import {processFileName} from "@xrengine/common/src/utils/processFileName";
+import getBasicMimetype from '../util/get-basic-mimetype'
+
 
 const NEW_SCENE_NAME = 'New-Scene'
 
@@ -227,23 +230,36 @@ export class Scene implements ServiceMethods<any> {
           const volumetricComponent = value.components.find(component => component.name === 'volumetric')
           const audioComponent = value.components.find(component => component.name === 'volumetric')
           const videoComponent = value.components.find(component => component.name === 'video')
-          if (volumetricComponent) {
-            if (volumetricComponent.resourceId) {
-              const volumetricResource = await this.app.service('volumetric').Model.findOne({
-                where: {
-                  id: volumetricComponent.resourceId
+            for (const item of mediaComponent.props.paths) {
+              console.log('media item', item)
+              if (mediaComponent.props.staticResources) {
+                const volumetricResource = await this.app.service('volumetric').Model.findOne({
+                  where: {
+                    id: volumetricComponent.resourceId
+                  }
+                })
+                if (volumetricResource) {
+                  await this.app.service('volumetric').patch(volumetricResource.id, {
+                    name: value.name,
+                    tags: value.tags || volumetricComponent.tags || [],
+
+                  })
                 }
-              })
-              if (volumetricResource) {
-                await this.app.service('volumetric').patch(volumetricResource.id, {
-                  name:
-                  tags: volumetricComponent.tags || []
+              } else {
+                const staticResource = await this.app.service('static-resource').create({
+                  url: item,
+                  key: processFileName(item),
+                  mimeType: getBasicMimeType(item),
+                  staticResourceType: 'volumetric',
+                  project: projectName
+                })
+                const volumetricResource = await this.app.service('volumetric').create({
+                  name: value.name,
+                  tags: value.tags || [],
+                  src: staticResource.id
                 })
               }
-            } else {
-              await this.app.service('volumetric').create({})
             }
-          }
         }
       }
       const newSceneJsonPath = `projects/${projectName}/${sceneName}.scene.json`
