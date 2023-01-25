@@ -45,6 +45,7 @@ import { SceneAssetPendingTagComponent } from '../components/SceneAssetPendingTa
 import { SCENE_COMPONENT_DYNAMIC_LOAD, SceneDynamicLoadTagComponent } from '../components/SceneDynamicLoadTagComponent'
 import { UUIDComponent } from '../components/UUIDComponent'
 import { VisibleComponent } from '../components/VisibleComponent'
+import {TypeComponent} from "../components/TypeComponent";
 
 export const createNewEditorNode = (entityNode: EntityTreeNode, prefabType: string): void => {
   const components = Engine.instance.currentWorld.scenePrefabRegistry.get(prefabType)
@@ -52,7 +53,7 @@ export const createNewEditorNode = (entityNode: EntityTreeNode, prefabType: stri
 
   addEntityNodeChild(entityNode, Engine.instance.currentWorld.entityTree.rootNode)
   // Clone the defualt values so that it will not be bound to newly created node
-  deserializeSceneEntity(entityNode, { name: prefabType, components: cloneDeep(components) })
+  deserializeSceneEntity(entityNode, { name: prefabType, type: prefabType.toLowerCase().replace(/\s/, '_'), components: cloneDeep(components) })
 }
 
 export const splitLazyLoadedSceneEntities = (json: SceneJson) => {
@@ -277,6 +278,7 @@ export const updateSceneEntity = (uuid: EntityUUID, entityJson: EntityJson, worl
  * Loads all the components from scene json for an entity
  * @param {EntityTreeNode} entityNode
  * @param {EntityJson} sceneEntity
+ * @param {World} world
  */
 export const deserializeSceneEntity = (
   entityNode: EntityTreeNode,
@@ -284,6 +286,7 @@ export const deserializeSceneEntity = (
   world = Engine.instance.currentWorld
 ): Entity => {
   setComponent(entityNode.entity, NameComponent, sceneEntity.name ?? 'entity-' + sceneEntity.index)
+  setComponent(entityNode.entity, TypeComponent, sceneEntity.type)
 
   /** remove ECS components that are in the scene register but not in the json */
   /** @todo we need to handle the case where a system is unloaded and an existing component no longer exists in the registry */

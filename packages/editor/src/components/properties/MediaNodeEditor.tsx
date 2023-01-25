@@ -2,7 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { AllFileTypes } from '@xrengine/engine/src/assets/constants/fileTypes'
-import { useComponent } from '@xrengine/engine/src/ecs/functions/ComponentFunctions'
+import {getComponent, useComponent} from '@xrengine/engine/src/ecs/functions/ComponentFunctions'
 import { getEntityErrors } from '@xrengine/engine/src/scene/components/ErrorComponent'
 import { MediaComponent } from '@xrengine/engine/src/scene/components/MediaComponent'
 import { PlayMode } from '@xrengine/engine/src/scene/constants/PlayMode'
@@ -16,6 +16,8 @@ import InputGroup from '../inputs/InputGroup'
 import SelectInput from '../inputs/SelectInput'
 import NodeEditor from './NodeEditor'
 import { EditorComponentType, updateProperty } from './Util'
+import {AssetLoader } from "@xrengine/engine/src/assets/classes/AssetLoader";
+import { PrefabFileType } from "../assets/FileBrowserContentPanel";
 
 const PlayModeOptions = [
   {
@@ -44,6 +46,21 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
 
   const toggle = () => {
     media.paused.set(!media.paused.value)
+  }
+
+  const updateResources = (e) => {
+    console.log('updateResources', e, e.target?.value)
+    const resources = e.target.value.map(path => {
+      const type = PrefabFileType[AssetLoader.getAssetType(path)]
+      const matchingCurrentMedia = media.resources.find(resource => resource.path === path && resource.type === type && resource.id != null)
+      const returned = {
+        path,
+        type
+      }
+      if (matchingCurrentMedia) returned.id = matchingCurrentMedia.id
+    })
+
+    updateProperty(MediaComponent, 'resources')(resources)
   }
 
   return (
@@ -89,8 +106,8 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
       <ArrayInputGroup
         name="Source Paths"
         prefix="Content"
-        values={media.paths.value}
-        onChange={updateProperty(MediaComponent, 'paths')}
+        values={media.resources.value.map(resource => resource.path)}
+        onChange={updateResources}
         label={t('editor:properties.media.paths')}
         acceptFileTypes={AllFileTypes}
         itemType={SupportedFileTypes}

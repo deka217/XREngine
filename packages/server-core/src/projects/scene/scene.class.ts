@@ -211,57 +211,14 @@ export class Scene implements ServiceMethods<any> {
 
   async update(projectName: string, data: UpdateParams, params?: Params): Promise<any> {
     try {
-      console.log('UPDATE PANTS')
       const {sceneName, sceneData, thumbnailBuffer, storageProviderName} = data
       logger.info('[scene.update]: ', projectName, data)
-      console.log('data', data)
 
       const storageProvider = getStorageProvider(storageProviderName)
 
       const project = await this.app.service('project').get(projectName, params)
-      console.log('project', project.data)
       if (!project.data) throw new Error(`No project named ${projectName} exists`)
 
-      for (const entity in data.sceneData!.entities) {
-        const value = data.sceneData!.entities[entity]
-        console.log('entity value', entity, value)
-        const mediaComponent = value.components.find(component => component.name === 'media')
-        if (mediaComponent) {
-          const volumetricComponent = value.components.find(component => component.name === 'volumetric')
-          const audioComponent = value.components.find(component => component.name === 'volumetric')
-          const videoComponent = value.components.find(component => component.name === 'video')
-            for (const item of mediaComponent.props.paths) {
-              console.log('media item', item)
-              if (mediaComponent.props.staticResources) {
-                const volumetricResource = await this.app.service('volumetric').Model.findOne({
-                  where: {
-                    id: volumetricComponent.resourceId
-                  }
-                })
-                if (volumetricResource) {
-                  await this.app.service('volumetric').patch(volumetricResource.id, {
-                    name: value.name,
-                    tags: value.tags || volumetricComponent.tags || [],
-
-                  })
-                }
-              } else {
-                const staticResource = await this.app.service('static-resource').create({
-                  url: item,
-                  key: processFileName(item),
-                  mimeType: getBasicMimeType(item),
-                  staticResourceType: 'volumetric',
-                  project: projectName
-                })
-                const volumetricResource = await this.app.service('volumetric').create({
-                  name: value.name,
-                  tags: value.tags || [],
-                  src: staticResource.id
-                })
-              }
-            }
-        }
-      }
       const newSceneJsonPath = `projects/${projectName}/${sceneName}.scene.json`
       await storageProvider.putObject({
         Key: newSceneJsonPath,
@@ -273,32 +230,42 @@ export class Scene implements ServiceMethods<any> {
         ContentType: 'application/json'
       })
 
-      console.log('Updated scene in storageProvider')
+      console.log('sceneData', sceneData)
+
+      for (const [, entity] of Object.entries(sceneData!.entities)) {
+        console.log('entity', entity)
+        switch(entity.type) {
+          case 'audio':
+            const mediaComponent = entity.components.find(component => component.name === 'media')
+              if (mediaComponent.)
+            const existingAudio = await this.app.service('audio').find({
+              where: {
+
+              }
+            })
+            break
+        }
+      }
 
       if (thumbnailBuffer && Buffer.isBuffer(thumbnailBuffer)) {
-        console.log('Inserting Thumbnail', thumbnailBuffer)
         const sceneThumbnailPath = `projects/${projectName}/${sceneName}.thumbnail.jpeg`
         await storageProvider.putObject({
           Key: sceneThumbnailPath,
           Body: thumbnailBuffer as Buffer,
           ContentType: 'image/jpeg'
         })
-        console.log('Inserted thumbnail')
       }
 
       try {
-        console.log('Creating invalidation')
         await storageProvider.createInvalidation(
             sceneAssetFiles.map((asset) => `projects/${projectName}/${sceneName}${asset}`)
         )
-        console.log('Created invalidation')
       } catch (e) {
         logger.error(e)
         logger.info(sceneAssetFiles)
       }
 
       if (isDev) {
-        console.log('Writing local files')
         const newSceneJsonPathLocal = path.resolve(
             appRootPath.path,
             `packages/projects/projects/${projectName}/${sceneName}.scene.json`
@@ -320,11 +287,9 @@ export class Scene implements ServiceMethods<any> {
           )
           fs.writeFileSync(path.resolve(sceneThumbnailPath), thumbnailBuffer as Buffer)
         }
-        console.log('Wrote local files')
       }
 
       // return scene id for update hooks
-      console.log('Finished with scene update')
       return {sceneId: `${projectName}/${sceneName}`}
     } catch(err) {
       logger.error(err)

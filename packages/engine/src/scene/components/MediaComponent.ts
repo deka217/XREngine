@@ -9,12 +9,11 @@ import { removePannerNode } from '../../audio/systems/PositionalAudioSystem'
 import { deepEqual } from '../../common/functions/deepEqual'
 import { isClient } from '../../common/functions/isClient'
 import { Engine } from '../../ecs/classes/Engine'
-import { EngineState, getEngineState } from '../../ecs/classes/EngineState'
+import { EngineState } from '../../ecs/classes/EngineState'
 import { Entity } from '../../ecs/classes/Entity'
 import {
   ComponentType,
   defineComponent,
-  getComponent,
   getComponentState,
   getOptionalComponent,
   hasComponent,
@@ -31,10 +30,17 @@ import { addError, clearErrors, removeError } from '../functions/ErrorFunctions'
 import isHLS from '../functions/isHLS'
 import { setObjectLayers } from '../functions/setObjectLayers'
 import { addObjectToGroup, removeObjectFromGroup } from './GroupComponent'
+import {EntityUUID} from "@xrengine/common/src/interfaces/EntityUUID";
 
 const AUDIO_TEXTURE_PATH = '/static/editor/audio-icon.png'
 
 export const AudioNodeGroups = new WeakMap<HTMLMediaElement | MediaStream, AudioNodeGroup>()
+
+export type MediaResource = {
+  path: string,
+  mediaType: 'audio' | 'video' | 'volumetric',
+  id: EntityUUID
+}
 
 export type AudioNodeGroup = {
   source: MediaElementAudioSourceNode | MediaStreamAudioSourceNode
@@ -112,7 +118,7 @@ export const MediaComponent = defineComponent({
        * If this value is in the future, begin playback at the appointed time.
        */
       // autoStartTime: -1,
-      paths: [] as string[],
+      resources: [] as MediaResource[],
       playMode: PlayMode.loop as PlayMode,
       isMusic: false,
       volume: 1,
@@ -133,7 +139,7 @@ export const MediaComponent = defineComponent({
     return {
       controls: component.controls.value,
       autoplay: component.autoplay.value,
-      paths: component.paths.value,
+      resources: component.resources.value,
       volume: component.volume.value,
       synchronize: component.synchronize.value,
       playMode: component.playMode.value,
@@ -217,7 +223,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
     function updateTrackMetadata() {
       clearErrors(entity, MediaComponent)
 
-      const paths = media.paths.value
+      const paths = media.resources.value.map(resource => resource.path)
 
       for (const path of paths) {
         const assetClass = AssetLoader.getAssetClass(path).toLowerCase()
@@ -250,7 +256,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
         }
       }
     },
-    [media.paths]
+    [media.resources]
   )
 
   useEffect(
@@ -265,7 +271,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
       if (!isClient) return
 
       const track = media.track.value
-      const path = media.paths[track].value
+      const path = media.resources[track].path.value
       if (!path) {
         if (hasComponent(entity, MediaElementComponent)) removeComponent(entity, MediaElementComponent)
         return
@@ -343,7 +349,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
         mediaElementState.element.src.set(path)
       }
     },
-    [media.paths, media.track]
+    [media.resources, media.track]
   )
 
   useEffect(
@@ -437,7 +443,7 @@ export const setupHLS = (entity: Entity, url: string): Hls => {
 
 export function getNextTrack(media: ComponentType<typeof MediaComponent>) {
   const currentTrack = media.track
-  const numTracks = media.paths.length
+  const numTracks = media.resources.length
   let nextTrack = 0
 
   if (media.playMode == PlayMode.random) {

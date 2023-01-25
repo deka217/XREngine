@@ -182,6 +182,11 @@ const modifyMaterial = (nodes: string[], materialId: string, properties: { [_: s
 /**
  *
  * @param nodes
+ * @param parents
+ * @param befores
+ * @param prefabTypes
+ * @param sceneData
+ * @param updateSelection
  * @returns
  */
 const addObject = (
@@ -195,6 +200,7 @@ const addObject = (
   cancelGrabOrPlacement()
 
   const rootObjects = getDetachedObjectsRoots(nodes)
+  console.log('addObject', nodes, rootObjects, prefabTypes, sceneData)
   const world = Engine.instance.currentWorld
 
   for (let i = 0; i < rootObjects.length; i++) {
