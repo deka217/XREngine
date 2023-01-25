@@ -2,6 +2,7 @@ import Hls from 'hls.js'
 import { startTransition, useEffect } from 'react'
 import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
 
+import { EntityUUID } from '@xrengine/common/src/interfaces/EntityUUID'
 import { getState, none, useHookstate } from '@xrengine/hyperflux'
 
 import { AssetLoader } from '../../assets/classes/AssetLoader'
@@ -30,15 +31,14 @@ import { addError, clearErrors, removeError } from '../functions/ErrorFunctions'
 import isHLS from '../functions/isHLS'
 import { setObjectLayers } from '../functions/setObjectLayers'
 import { addObjectToGroup, removeObjectFromGroup } from './GroupComponent'
-import {EntityUUID} from "@xrengine/common/src/interfaces/EntityUUID";
 
 const AUDIO_TEXTURE_PATH = '/static/editor/audio-icon.png'
 
 export const AudioNodeGroups = new WeakMap<HTMLMediaElement | MediaStream, AudioNodeGroup>()
 
 export type MediaResource = {
-  path: string,
-  mediaType: 'audio' | 'video' | 'volumetric',
+  path: string
+  mediaType: 'audio' | 'video' | 'volumetric'
   id: EntityUUID
 }
 
@@ -79,6 +79,7 @@ export const MediaElementComponent = defineComponent({
   },
 
   onSet: (entity, component, json) => {
+    console.log('mediaelement onset', json)
     if (!json) return
     if (typeof json.element === 'object' && json.element !== component.element.get({ noproxy: true }))
       component.element.set(json.element as HTMLMediaElement)
@@ -148,12 +149,23 @@ export const MediaComponent = defineComponent({
   },
 
   onSet: (entity, component, json) => {
+    console.log('Media component onset', entity, component, json)
     if (!json) return
     startTransition(() => {
       if (typeof json.paths === 'object') {
         // backwards-compat: update uvol paths to point to the video files
         const paths = json.paths.map((path) => path.replace('.drcs', '.mp4').replace('.uvol', '.mp4'))
-        if (!deepEqual(component.paths.value, json.paths)) component.paths.set(paths)
+        component.resources.set(
+          paths.map((path) => {
+            return {
+              type: entity.type,
+              path
+            }
+          })
+        )
+      }
+      if (typeof json.resources === 'object') {
+        component.resources.set(json.resources)
       }
 
       if (typeof json.controls === 'boolean' && json.controls !== component.controls.value)
@@ -223,7 +235,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
     function updateTrackMetadata() {
       clearErrors(entity, MediaComponent)
 
-      const paths = media.resources.value.map(resource => resource.path)
+      const paths = media.resources.value.map((resource) => resource.path)
 
       for (const path of paths) {
         const assetClass = AssetLoader.getAssetClass(path).toLowerCase()

@@ -1,13 +1,9 @@
 import React, { MouseEvent, StyleHTMLAttributes, useCallback } from 'react'
 import { useDrag } from 'react-dnd'
-import { Material } from 'three'
 
 import { pathResolver } from '@xrengine/engine/src/assets/functions/pathResolver'
 import { MaterialComponentType } from '@xrengine/engine/src/renderer/materials/components/MaterialComponent'
-import {
-  MaterialPrototypeComponent,
-  MaterialPrototypeComponentType
-} from '@xrengine/engine/src/renderer/materials/components/MaterialPrototypeComponent'
+import { MaterialPrototypeComponentType } from '@xrengine/engine/src/renderer/materials/components/MaterialPrototypeComponent'
 import { MaterialSourceComponentType } from '@xrengine/engine/src/renderer/materials/components/MaterialSource'
 import { LibraryEntryType } from '@xrengine/engine/src/renderer/materials/constants/LibraryEntry'
 import { entryId, hashMaterialSource } from '@xrengine/engine/src/renderer/materials/functions/MaterialLibraryFunctions'

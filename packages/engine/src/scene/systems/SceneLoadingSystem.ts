@@ -43,9 +43,9 @@ import { ModelComponent, SCENE_COMPONENT_MODEL } from '../components/ModelCompon
 import { NameComponent } from '../components/NameComponent'
 import { SceneAssetPendingTagComponent } from '../components/SceneAssetPendingTagComponent'
 import { SCENE_COMPONENT_DYNAMIC_LOAD, SceneDynamicLoadTagComponent } from '../components/SceneDynamicLoadTagComponent'
+import { TypeComponent } from '../components/TypeComponent'
 import { UUIDComponent } from '../components/UUIDComponent'
 import { VisibleComponent } from '../components/VisibleComponent'
-import {TypeComponent} from "../components/TypeComponent";
 
 export const createNewEditorNode = (entityNode: EntityTreeNode, prefabType: string): void => {
   const components = Engine.instance.currentWorld.scenePrefabRegistry.get(prefabType)
@@ -53,7 +53,11 @@ export const createNewEditorNode = (entityNode: EntityTreeNode, prefabType: stri
 
   addEntityNodeChild(entityNode, Engine.instance.currentWorld.entityTree.rootNode)
   // Clone the defualt values so that it will not be bound to newly created node
-  deserializeSceneEntity(entityNode, { name: prefabType, type: prefabType.toLowerCase().replace(/\s/, '_'), components: cloneDeep(components) })
+  deserializeSceneEntity(entityNode, {
+    name: prefabType,
+    type: prefabType.toLowerCase().replace(/\s/, '_'),
+    components: cloneDeep(components)
+  })
 }
 
 export const splitLazyLoadedSceneEntities = (json: SceneJson) => {
@@ -285,6 +289,7 @@ export const deserializeSceneEntity = (
   sceneEntity: EntityJson,
   world = Engine.instance.currentWorld
 ): Entity => {
+  console.log('deserializeSceneEntity', sceneEntity, sceneEntity.type)
   setComponent(entityNode.entity, NameComponent, sceneEntity.name ?? 'entity-' + sceneEntity.index)
   setComponent(entityNode.entity, TypeComponent, sceneEntity.type)
 

@@ -1,7 +1,9 @@
 import { NullableId, Params, ServiceMethods } from '@feathersjs/feathers'
 import appRootPath from 'app-root-path'
 import fs from 'fs'
+import fetch from 'node-fetch'
 import path from 'path'
+import { Op } from 'sequelize'
 
 import { isDev } from '@xrengine/common/src/config'
 import { SceneData, SceneJson } from '@xrengine/common/src/interfaces/SceneInterface'
@@ -11,14 +13,14 @@ import { Application } from '../../../declarations'
 import { getCacheDomain } from '../../media/storageprovider/getCacheDomain'
 import { getCachedURL } from '../../media/storageprovider/getCachedURL'
 import { getStorageProvider } from '../../media/storageprovider/storageprovider'
+import { addGenericAssetToS3AndStaticResources } from '../../media/upload-asset/upload-asset.service'
 import logger from '../../ServerLogger'
 import { cleanString } from '../../util/cleanString'
 import { cleanSceneDataCacheURLs, parseSceneDataCacheURLs } from './scene-parser'
-import {processFileName} from "@xrengine/common/src/utils/processFileName";
-import getBasicMimetype from '../util/get-basic-mimetype'
-
 
 const NEW_SCENE_NAME = 'New-Scene'
+
+const FILE_NAME_REGEX = /(\w+\.\w+)$/
 
 const sceneAssetFiles = ['.scene.json', '.thumbnail.jpeg', '.envmap.png']
 
@@ -211,7 +213,7 @@ export class Scene implements ServiceMethods<any> {
 
   async update(projectName: string, data: UpdateParams, params?: Params): Promise<any> {
     try {
-      const {sceneName, sceneData, thumbnailBuffer, storageProviderName} = data
+      const { sceneName, sceneData, thumbnailBuffer, storageProviderName } = data
       logger.info('[scene.update]: ', projectName, data)
 
       const storageProvider = getStorageProvider(storageProviderName)
@@ -219,33 +221,82 @@ export class Scene implements ServiceMethods<any> {
       const project = await this.app.service('project').get(projectName, params)
       if (!project.data) throw new Error(`No project named ${projectName} exists`)
 
-      const newSceneJsonPath = `projects/${projectName}/${sceneName}.scene.json`
-      await storageProvider.putObject({
-        Key: newSceneJsonPath,
-        Body: Buffer.from(
-            JSON.stringify(
-                cleanSceneDataCacheURLs(sceneData ?? (defaultSceneSeed as unknown as SceneJson), storageProvider.cacheDomain)
-            )
-        ),
-        ContentType: 'application/json'
-      })
-
       console.log('sceneData', sceneData)
 
       for (const [, entity] of Object.entries(sceneData!.entities)) {
         console.log('entity', entity)
-        switch(entity.type) {
+        switch (entity.type) {
           case 'audio':
-            const mediaComponent = entity.components.find(component => component.name === 'media')
-              if (mediaComponent.)
-            const existingAudio = await this.app.service('audio').find({
-              where: {
-
+            const mediaComponent = entity.components.find((component) => component.name === 'media')
+            console.log('mediaComponent', mediaComponent)
+            const resources = mediaComponent?.props.resources
+            console.log('resources on media', resources)
+            for (const [, resource] of Object.entries(resources)) {
+              if (resource.id) {
+                const existingAudio = await this.app.service('audio').get(resource.id)
+                console.log('existingAudio', existingAudio)
+                if (existingAudio.total === 0) resource.id = null
               }
-            })
+              if (!resource.id) {
+                console.log('creating audio for', resource, resource.path)
+                const result = await fetch(resource.path)
+
+                console.log('file fetch result', result)
+                const dataBuffer = await result.buffer()
+                console.log('audio buffer', dataBuffer)
+                const filenameRegexExec = FILE_NAME_REGEX.exec(resource.path)
+                const filename = filenameRegexExec ? filenameRegexExec[0] : 'untitled.mp3'
+                const whereArgs = {
+                  url: resource.path
+                } as any
+                // if (args.project) whereArgs.project = args.project
+                // const existingAsset = await this.app.service('static-resource').Model.findAndCountAll({
+                //   where: whereArgs
+                // })
+                const newStaticResource = await addGenericAssetToS3AndStaticResources(this.app, dataBuffer, 'audio', {
+                  name: filename,
+                  key: `/audio/${filename}`,
+                  project: projectName,
+                  staticResourceType: 'audio'
+                })
+
+                console.log('new static resource', newStaticResource)
+
+                const existingAudio = await this.app.service('audio').find({
+                  query: {
+                    src: newStaticResource.id
+                  }
+                })
+                if (existingAudio.total > 0) {
+                  console.log('existing audio', existingAudio.data)
+                  resource.id = existingAudio.data[0].id
+                } else {
+                  const newAudio = await this.app.service('audio').create({
+                    name: resource.path,
+                    src: newStaticResource.id
+                  })
+                  console.log('new audio entity', newAudio)
+                  resource.id = newAudio.id
+                }
+              }
+            }
             break
         }
       }
+
+      const newSceneJsonPath = `projects/${projectName}/${sceneName}.scene.json`
+      await storageProvider.putObject({
+        Key: newSceneJsonPath,
+        Body: Buffer.from(
+          JSON.stringify(
+            cleanSceneDataCacheURLs(
+              sceneData ?? (defaultSceneSeed as unknown as SceneJson),
+              storageProvider.cacheDomain
+            )
+          )
+        ),
+        ContentType: 'application/json'
+      })
 
       if (thumbnailBuffer && Buffer.isBuffer(thumbnailBuffer)) {
         const sceneThumbnailPath = `projects/${projectName}/${sceneName}.thumbnail.jpeg`
@@ -258,7 +309,7 @@ export class Scene implements ServiceMethods<any> {
 
       try {
         await storageProvider.createInvalidation(
-            sceneAssetFiles.map((asset) => `projects/${projectName}/${sceneName}${asset}`)
+          sceneAssetFiles.map((asset) => `projects/${projectName}/${sceneName}${asset}`)
         )
       } catch (e) {
         logger.error(e)
@@ -267,31 +318,34 @@ export class Scene implements ServiceMethods<any> {
 
       if (isDev) {
         const newSceneJsonPathLocal = path.resolve(
-            appRootPath.path,
-            `packages/projects/projects/${projectName}/${sceneName}.scene.json`
+          appRootPath.path,
+          `packages/projects/projects/${projectName}/${sceneName}.scene.json`
         )
 
         fs.writeFileSync(
-            path.resolve(newSceneJsonPathLocal),
-            JSON.stringify(
-                cleanSceneDataCacheURLs(sceneData ?? (defaultSceneSeed as unknown as SceneJson), storageProvider.cacheDomain),
-                null,
-                2
-            )
+          path.resolve(newSceneJsonPathLocal),
+          JSON.stringify(
+            cleanSceneDataCacheURLs(
+              sceneData ?? (defaultSceneSeed as unknown as SceneJson),
+              storageProvider.cacheDomain
+            ),
+            null,
+            2
+          )
         )
 
         if (thumbnailBuffer && Buffer.isBuffer(thumbnailBuffer)) {
           const sceneThumbnailPath = path.resolve(
-              appRootPath.path,
-              `packages/projects/projects/${projectName}/${sceneName}.thumbnail.jpeg`
+            appRootPath.path,
+            `packages/projects/projects/${projectName}/${sceneName}.thumbnail.jpeg`
           )
           fs.writeFileSync(path.resolve(sceneThumbnailPath), thumbnailBuffer as Buffer)
         }
       }
 
       // return scene id for update hooks
-      return {sceneId: `${projectName}/${sceneName}`}
-    } catch(err) {
+      return { sceneId: `${projectName}/${sceneName}` }
+    } catch (err) {
       logger.error(err)
       throw err
     }

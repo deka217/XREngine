@@ -33,19 +33,7 @@ export class Audio extends Service<AudioInterface> {
       $select: ['id']
     } as any
     if (data.src) query.src = data.src
-    const oldResource = await this.find({
-      query
-    })
-
-    if ((oldResource as any).total > 0) {
-      return this.Model.update(data, {
-        where: {
-          name: data.name
-        }
-      }).then(() => self.Model.findOne({ where: { name: data.name } }))
-    } else {
-      return this.Model.create(data)
-    }
+    return this.Model.create(data)
   }
 
   async find(params?: Params): Promise<AudioInterface[] | Paginated<AudioInterface>> {

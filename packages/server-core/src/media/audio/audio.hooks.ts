@@ -22,10 +22,10 @@ export default {
       })
     ],
     get: [disallow('external')],
-    create: [authenticate(), verifyScope('admin', 'admin')],
-    update: [authenticate(), verifyScope('admin', 'admin')],
-    patch: [authenticate(), verifyScope('admin', 'admin')],
-    remove: [authenticate(), verifyScope('admin', 'admin')]
+    create: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    update: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    patch: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    remove: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)]
   },
 
   after: {

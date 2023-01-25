@@ -1,13 +1,16 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AssetLoader } from '@xrengine/engine/src/assets/classes/AssetLoader'
 import { AllFileTypes } from '@xrengine/engine/src/assets/constants/fileTypes'
-import {getComponent, useComponent} from '@xrengine/engine/src/ecs/functions/ComponentFunctions'
+import { getComponent, useComponent } from '@xrengine/engine/src/ecs/functions/ComponentFunctions'
 import { getEntityErrors } from '@xrengine/engine/src/scene/components/ErrorComponent'
 import { MediaComponent } from '@xrengine/engine/src/scene/components/MediaComponent'
+import { TypeComponent } from '@xrengine/engine/src/scene/components/TypeComponent'
 import { PlayMode } from '@xrengine/engine/src/scene/constants/PlayMode'
 
 import { SupportedFileTypes } from '../../constants/AssetTypes'
+import { PrefabFileType } from '../assets/FileBrowserContentPanel'
 import ArrayInputGroup from '../inputs/ArrayInputGroup'
 import BooleanInput from '../inputs/BooleanInput'
 import { Button } from '../inputs/Button'
@@ -16,8 +19,6 @@ import InputGroup from '../inputs/InputGroup'
 import SelectInput from '../inputs/SelectInput'
 import NodeEditor from './NodeEditor'
 import { EditorComponentType, updateProperty } from './Util'
-import {AssetLoader } from "@xrengine/engine/src/assets/classes/AssetLoader";
-import { PrefabFileType } from "../assets/FileBrowserContentPanel";
 
 const PlayModeOptions = [
   {
@@ -43,22 +44,32 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
 
   const media = useComponent(props.node.entity, MediaComponent)
   const errors = getEntityErrors(props.node.entity, MediaComponent)
+  const type = useComponent(props.node.entity, TypeComponent)
+
+  console.log('type pants', type, type.value)
 
   const toggle = () => {
     media.paused.set(!media.paused.value)
   }
 
   const updateResources = (e) => {
-    console.log('updateResources', e, e.target?.value)
-    const resources = e.target.value.map(path => {
-      const type = PrefabFileType[AssetLoader.getAssetType(path)]
-      const matchingCurrentMedia = media.resources.find(resource => resource.path === path && resource.type === type && resource.id != null)
+    console.log('props', props, props.node.entity.type)
+    console.log('updateResources', e)
+    const resources = e.map((path) => {
+      console.log('path', path)
+      const matchingCurrentMedia = media.resources.find(
+        (resource) => resource.path === path && resource.type === type && resource.id != null
+      )
+      console.log('match current media', matchingCurrentMedia)
       const returned = {
         path,
-        type
+        type: type.value
       }
       if (matchingCurrentMedia) returned.id = matchingCurrentMedia.id
+      console.log('returned', returned)
+      return returned
     })
+    console.log('resources', resources)
 
     updateProperty(MediaComponent, 'resources')(resources)
   }
@@ -106,7 +117,7 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
       <ArrayInputGroup
         name="Source Paths"
         prefix="Content"
-        values={media.resources.value.map(resource => resource.path)}
+        values={media.resources.value.map((resource) => resource.path)}
         onChange={updateResources}
         label={t('editor:properties.media.paths')}
         acceptFileTypes={AllFileTypes}
@@ -119,7 +130,7 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
           value={media.playMode.value}
           onChange={updateProperty(MediaComponent, 'playMode')}
         />
-        {media.paths && media.paths.length > 0 && media.paths[0] && (
+        {media.resources && media.resources.length > 0 && media.resources[0] && (
           <Button style={{ marginLeft: '5px', width: '60px' }} type="submit" onClick={toggle}>
             {media.paused ? t('editor:properties.media.playtitle') : t('editor:properties.media.pausetitle')}
           </Button>
