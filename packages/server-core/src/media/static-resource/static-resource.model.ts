@@ -67,6 +67,9 @@ export default (app: Application) => {
       },
       tags: {
         type: DataTypes.JSON
+      },
+      originalURL: {
+          type: DataTypes.STRING
       }
     },
     {

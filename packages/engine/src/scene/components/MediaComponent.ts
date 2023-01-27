@@ -39,7 +39,7 @@ export const AudioNodeGroups = new WeakMap<HTMLMediaElement | MediaStream, Audio
 export type MediaResource = {
   path: string
   mediaType: 'audio' | 'video' | 'volumetric'
-  id: EntityUUID
+  id?: EntityUUID
 }
 
 export type AudioNodeGroup = {

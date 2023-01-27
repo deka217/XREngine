@@ -15,5 +15,6 @@ export interface StaticResourceInterface {
   mobileQualitySize?: number
   attribution?: string
   licensing?: string
-  tags?: string[]
+  tags?: string[],
+  originalURL?: string[]
 }
