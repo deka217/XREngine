@@ -43,7 +43,6 @@ import { ModelComponent, SCENE_COMPONENT_MODEL } from '../components/ModelCompon
 import { NameComponent } from '../components/NameComponent'
 import { SceneAssetPendingTagComponent } from '../components/SceneAssetPendingTagComponent'
 import { SCENE_COMPONENT_DYNAMIC_LOAD, SceneDynamicLoadTagComponent } from '../components/SceneDynamicLoadTagComponent'
-import { TypeComponent } from '../components/TypeComponent'
 import { UUIDComponent } from '../components/UUIDComponent'
 import { VisibleComponent } from '../components/VisibleComponent'
 
@@ -291,7 +290,6 @@ export const deserializeSceneEntity = (
 ): Entity => {
   console.log('deserializeSceneEntity', sceneEntity, sceneEntity.type)
   setComponent(entityNode.entity, NameComponent, sceneEntity.name ?? 'entity-' + sceneEntity.index)
-  setComponent(entityNode.entity, TypeComponent, sceneEntity.type)
 
   /** remove ECS components that are in the scene register but not in the json */
   /** @todo we need to handle the case where a system is unloaded and an existing component no longer exists in the registry */

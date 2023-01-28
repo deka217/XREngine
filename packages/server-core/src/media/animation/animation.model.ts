@@ -33,7 +33,7 @@ export default (app: Application) => {
 
   ;(animation as any).associate = (models: any): void => {
     ;(animation as any).belongsTo(models.static_resource, {
-      foreignKey: 'src',
+      foreignKey: 'staticResourceId',
       required: true
     })
     ;(animation as any).belongsTo(models.rig, {

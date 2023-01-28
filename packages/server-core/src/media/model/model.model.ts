@@ -33,12 +33,24 @@ export default (app: Application) => {
 
   ;(model as any).associate = (models: any): void => {
     ;(model as any).belongsTo(models.static_resource, {
-      foreignKey: 'src',
-      required: true
+      foreignKey: 'glbStaticResourceId',
+      required: false
+    })
+    ;(model as any).belongsTo(models.static_resource, {
+      foreignKey: 'gltfStaticResourceId',
+      required: false
+    })
+    ;(model as any).belongsTo(models.static_resource, {
+      foreignKey: 'fbxStaticResourceId',
+      required: false
+    })
+    ;(model as any).belongsTo(models.static_resource, {
+      foreignKey: 'usdzStaticResourceId',
+      required: false
     })
     ;(model as any).belongsTo(models.image, {
       foreignKey: 'thumbnail',
-      required: true
+      required: false
     })
   }
 

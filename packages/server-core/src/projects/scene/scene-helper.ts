@@ -1,21 +1,19 @@
+import { Paginated } from '@feathersjs/feathers'
 import express from 'express'
-
-import { PortalDetail } from '@xrengine/common/src/interfaces/PortalInterface'
-
-import { Application } from '../../../declarations'
-import { parseScenePortals } from './scene-parser'
-import { SceneParams } from './scene.service'
-import {MediaResource} from "@xrengine/engine/src/scene/components/MediaComponent";
-import {EntityJson} from "@xrengine/common/src/interfaces/SceneInterface";
-import fetch from "node-fetch";
-import {Paginated} from "@feathersjs/feathers";
-import {StaticResourceInterface} from "@xrengine/common/src/interfaces/StaticResourceInterface";
-import {addGenericAssetToS3AndStaticResources} from "../../media/upload-asset/upload-asset.service";
-import {EntityUUID} from "@xrengine/common/src/interfaces/EntityUUID";
-import {AudioInterface} from "@xrengine/common/src/interfaces/AudioInterface";
-
+import fetch from 'node-fetch'
 import { Op } from 'sequelize'
 
+import { AudioInterface } from '@xrengine/common/src/interfaces/AudioInterface'
+import { EntityUUID } from '@xrengine/common/src/interfaces/EntityUUID'
+import { PortalDetail } from '@xrengine/common/src/interfaces/PortalInterface'
+import {ComponentJson} from '@xrengine/common/src/interfaces/SceneInterface'
+import { StaticResourceInterface } from '@xrengine/common/src/interfaces/StaticResourceInterface'
+import { MediaResource } from '@xrengine/engine/src/scene/components/MediaComponent'
+
+import { Application } from '../../../declarations'
+import { addGenericAssetToS3AndStaticResources } from '../../media/upload-asset/upload-asset.service'
+import { parseScenePortals } from './scene-parser'
+import { SceneParams } from './scene.service'
 
 const FILE_NAME_REGEX = /(\w+\.\w+)$/
 
@@ -66,10 +64,8 @@ export const getEnvMapBakeById = async (app, entityId: string) => {
   // })
 }
 
-export const uploadAudio = async (app: Application, entity: EntityJson, projectName: string) => {
-  const mediaComponent = entity.components.find((component) => component.name === 'media')
-  console.log('mediaComponent', mediaComponent)
-  const resources = mediaComponent?.props.resources as MediaResource[]
+export const uploadAudio = async (app: Application, component: ComponentJson, projectName: string) => {
+  const resources = component?.props.resources as MediaResource[]
   console.log('resources on media', resources)
   for (const [, resource] of Object.entries(resources)) {
     if (resource.id) {
@@ -87,9 +83,8 @@ export const uploadAudio = async (app: Application, entity: EntityJson, projectN
       const filenameRegexExec = FILE_NAME_REGEX.exec(resource.path)
       const filename = filenameRegexExec ? filenameRegexExec[0] : 'untitled.mp3'
 
-      const existingResource = await app.service('static-resource').find({
+      const existingResource = (await app.service('static-resource').find({
         query: {
-
           [Op.or]: [
             {
               originalURL: resource.path
@@ -99,7 +94,7 @@ export const uploadAudio = async (app: Application, entity: EntityJson, projectN
             }
           ]
         }
-      }) as Paginated<StaticResourceInterface>
+      })) as Paginated<StaticResourceInterface>
       if (existingResource.total === 0) {
         const newStaticResource = await addGenericAssetToS3AndStaticResources(app, dataBuffer, 'audio', {
           name: filename,
@@ -116,11 +111,11 @@ export const uploadAudio = async (app: Application, entity: EntityJson, projectN
         console.log('new audio entity', newAudio)
         resource.id = newAudio.id as EntityUUID
       } else {
-        const existingAudio = await app.service('audio').find({
+        const existingAudio = (await app.service('audio').find({
           query: {
             src: existingResource.data[0].id
           }
-        }) as Paginated<AudioInterface>
+        })) as Paginated<AudioInterface>
         if (existingAudio.total > 0) {
           console.log('existing audio', existingAudio)
           resource.id = existingAudio.data[0].id as EntityUUID
@@ -130,42 +125,22 @@ export const uploadAudio = async (app: Application, entity: EntityJson, projectN
   }
 }
 
-export const uploadVideo = async (app: Application, entity: EntityJson, projectName: string) => {
+export const uploadVideo = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-}
+export const uploadVolumetric = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-export const uploadVolumetric = async (app: Application, entity: EntityJson, projectName: string) => {
+export const uploadAnimation = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-}
+export const uploadMaterial = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-export const uploadAnimation = async (app: Application, entity: EntityJson, projectName: string) => {
+export const uploadScript = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-}
+export const uploadCubemap = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-export const uploadMaterial = async (app: Application, entity: EntityJson, projectName: string) => {
+export const uploadImage = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-}
+export const uploadSpawnPoint = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-export const uploadScript = async (app: Application, entity: EntityJson, projectName: string) => {
+export const uploadEquippable = async (app: Application, component: ComponentJson, projectName: string) => {}
 
-}
-
-export const uploadCubemap = async (app: Application, entity: EntityJson, projectName: string) => {
-
-}
-
-export const uploadImage = async (app: Application, entity: EntityJson, projectName: string) => {
-
-}
-
-export const uploadSpawnPoint = async (app: Application, entity: EntityJson, projectName: string) => {
-
-}
-
-export const uploadEquippable = async (app: Application, entity: EntityJson, projectName: string) => {
-
-}
-
-export const uploadModel = async (app: Application, entity: EntityJson, projectName: string) => {
-
-}
+export const uploadModel = async (app: Application, component: ComponentJson, projectName: string) => {}

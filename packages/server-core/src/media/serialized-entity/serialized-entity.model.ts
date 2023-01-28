@@ -33,12 +33,12 @@ export default (app: Application) => {
 
   ;(serializedEntity as any).associate = (models: any): void => {
     ;(serializedEntity as any).belongsTo(models.static_resource, {
-      foreignKey: 'src',
+      foreignKey: 'staticResourceId',
       required: true
     })
     ;(serializedEntity as any).belongsTo(models.image, {
       foreignKey: 'thumbnail',
-      required: true
+      required: false
     })
   }
 

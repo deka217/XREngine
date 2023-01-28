@@ -6,7 +6,6 @@ import { AllFileTypes } from '@xrengine/engine/src/assets/constants/fileTypes'
 import { getComponent, useComponent } from '@xrengine/engine/src/ecs/functions/ComponentFunctions'
 import { getEntityErrors } from '@xrengine/engine/src/scene/components/ErrorComponent'
 import { MediaComponent } from '@xrengine/engine/src/scene/components/MediaComponent'
-import { TypeComponent } from '@xrengine/engine/src/scene/components/TypeComponent'
 import { PlayMode } from '@xrengine/engine/src/scene/constants/PlayMode'
 
 import { SupportedFileTypes } from '../../constants/AssetTypes'
@@ -44,9 +43,6 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
 
   const media = useComponent(props.node.entity, MediaComponent)
   const errors = getEntityErrors(props.node.entity, MediaComponent)
-  const type = useComponent(props.node.entity, TypeComponent)
-
-  console.log('type pants', type, type.value)
 
   const toggle = () => {
     media.paused.set(!media.paused.value)
@@ -62,8 +58,7 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
       )
       console.log('match current media', matchingCurrentMedia)
       const returned = {
-        path,
-        type: type.value
+        path
       }
       if (matchingCurrentMedia) returned.id = matchingCurrentMedia.id
       console.log('returned', returned)

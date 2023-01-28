@@ -35,10 +35,6 @@ export default (app: Application) => {
   )
 
   ;(rig as any).associate = (models: any): void => {
-    ;(rig as any).belongsTo(models.static_resource, {
-      foreignKey: 'src',
-      required: true
-    })
     ;(rig as any).hasMany(models.animation, {
       foreignKey: 'animation',
       required: true

@@ -36,8 +36,20 @@ export default (app: Application) => {
 
   ;(audio as any).associate = (models: any): void => {
     ;(audio as any).belongsTo(models.static_resource, {
-      foreignKey: 'src',
-      required: true
+        foreignKey: 'mp3StaticResourceId',
+        required: false
+    })
+    ;(audio as any).belongsTo(models.static_resource, {
+        foreignKey: 'mpegStaticResourceId',
+        required: false
+    })
+    ;(audio as any).belongsTo(models.static_resource, {
+      foreignKey: 'oggStaticResourceId',
+      required: false
+    })
+    ;(audio as any).belongsTo(models.image, {
+        foreignKey: 'thumbnail',
+        required: false
     })
   }
 

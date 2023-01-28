@@ -36,7 +36,7 @@ export default (app: Application) => {
 
   ;(cubemap as any).associate = (models: any): void => {
     ;(cubemap as any).belongsTo(models.static_resource, {
-      foreignKey: 'src',
+      foreignKey: 'staticResourceId',
       required: true
     })
     ;(cubemap as any).belongsTo(models.image, {

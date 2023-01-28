@@ -19,7 +19,6 @@ import { getSceneMetadataChanges } from '../../ecs/functions/getSceneMetadataCha
 import { GLTFLoadedComponent } from '../components/GLTFLoadedComponent'
 import { NameComponent } from '../components/NameComponent'
 import { LoadState, PrefabComponent } from '../components/PrefabComponent'
-import { TypeComponent } from '../components/TypeComponent'
 
 export const serializeEntity = (entity: Entity, world = Engine.instance.currentWorld) => {
   const ignoreComponents = getOptionalComponent(entity, GLTFLoadedComponent)
@@ -83,8 +82,6 @@ export const serializeWorld = (
 
       entityUuid[node.entity] = node.uuid
       entityJson.name = getComponent(node.entity, NameComponent)
-      entityJson.type = getComponent(node.entity, TypeComponent)
-        console.log('entityJson.type', entityJson, entityJson.type)
 
       entityJson.components = serializeEntity(node.entity, world)
 

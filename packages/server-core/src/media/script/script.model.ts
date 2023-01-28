@@ -33,7 +33,7 @@ export default (app: Application) => {
 
   ;(script as any).associate = (models: any): void => {
     ;(script as any).belongsTo(models.static_resource, {
-      foreignKey: 'src',
+      foreignKey: 'staticResourceId',
       required: true
     })
     ;(script as any).belongsTo(models.image, {

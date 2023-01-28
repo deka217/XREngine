@@ -15,19 +15,20 @@ import { getCachedURL } from '../../media/storageprovider/getCachedURL'
 import { getStorageProvider } from '../../media/storageprovider/storageprovider'
 import logger from '../../ServerLogger'
 import { cleanString } from '../../util/cleanString'
-import { cleanSceneDataCacheURLs, parseSceneDataCacheURLs } from './scene-parser'
 import {
   uploadAnimation,
-  uploadAudio, uploadCubemap, uploadImage,
+  uploadAudio,
+  uploadCubemap,
+  uploadImage,
   uploadMaterial,
   uploadModel,
   uploadScript,
   uploadVideo,
   uploadVolumetric
-} from "./scene-helper";
+} from './scene-helper'
+import { cleanSceneDataCacheURLs, parseSceneDataCacheURLs } from './scene-parser'
 
 const NEW_SCENE_NAME = 'New-Scene'
-
 
 const sceneAssetFiles = ['.scene.json', '.thumbnail.jpeg', '.envmap.png']
 
@@ -231,34 +232,35 @@ export class Scene implements ServiceMethods<any> {
       console.log('sceneData', sceneData)
 
       for (const [, entity] of Object.entries(sceneData!.entities)) {
+        for (const [, component] of Object.entries(entity)) {
         console.log('entity', entity)
-        switch (entity.type) {
+        switch (component.name) {
           case 'audio':
-            await uploadAudio(this.app, entity, projectName)
+            await uploadAudio(this.app, component, projectName)
             break
           case 'video':
-            await uploadVideo(this.app, entity, projectName)
+            await uploadVideo(this.app, component, projectName)
             break
           case 'volumetric':
-            await uploadVolumetric(this.app, entity, projectName)
+            await uploadVolumetric(this.app, component, projectName)
             break
           case 'model':
-            await uploadModel(this.app, entity, projectName)
+            await uploadModel(this.app, component, projectName)
             break
           case 'animation':
-            await uploadAnimation(this.app, entity, projectName)
+            await uploadAnimation(this.app, component, projectName)
             break
           case 'material':
-            await uploadMaterial(this.app, entity, projectName)
+            await uploadMaterial(this.app, component, projectName)
             break
           case 'script':
-            await uploadScript(this.app, entity, projectName)
+            await uploadScript(this.app, component, projectName)
             break
           case 'cubemap':
-            await uploadCubemap(this.app, entity, projectName)
+            await uploadCubemap(this.app, component, projectName)
             break
           case 'image':
-            await uploadImage(this.app, entity, projectName)
+            await uploadImage(this.app, component, projectName)
             break
         }
       }

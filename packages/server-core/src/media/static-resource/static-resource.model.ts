@@ -41,23 +41,113 @@ export default (app: Application) => {
       driver: {
         type: DataTypes.STRING
       },
-      fullQualityURL: {
+      LOD0_url: {
         type: DataTypes.STRING
       },
-      lowQualityURL: {
+      LOD0_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD1_url: {
         type: DataTypes.STRING
       },
-      mobileQualityURL: {
+      LOD1_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD2_url: {
         type: DataTypes.STRING
       },
-      fullQualitySize: {
-        type: DataTypes.INTEGER
+      LOD2_size: {
+        type: DataTypes.NUMBER
       },
-      lowQualitySize: {
-        type: DataTypes.INTEGER
+      LOD3_url: {
+        type: DataTypes.STRING
       },
-      mobileQualitySize: {
-        type: DataTypes.INTEGER
+      LOD3_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD4_url: {
+        type: DataTypes.STRING
+      },
+      LOD4_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD5_url: {
+        type: DataTypes.STRING
+      },
+      LOD5_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD6_url: {
+        type: DataTypes.STRING
+      },
+      LOD6_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD7_url: {
+        type: DataTypes.STRING
+      },
+      LOD7_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD8_url: {
+        type: DataTypes.STRING
+      },
+      LOD8_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD9_url: {
+        type: DataTypes.STRING
+      },
+      LOD9_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD10_url: {
+        type: DataTypes.STRING
+      },
+      LOD10_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD11_url: {
+        type: DataTypes.STRING
+      },
+      LOD11_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD12_url: {
+        type: DataTypes.STRING
+      },
+      LOD12_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD13_url: {
+        type: DataTypes.STRING
+      },
+      LOD13_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD14_url: {
+        type: DataTypes.STRING
+      },
+      LOD14_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD15_url: {
+        type: DataTypes.STRING
+      },
+      LOD15_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD16_url: {
+        type: DataTypes.STRING
+      },
+      LOD16_size: {
+        type: DataTypes.NUMBER
+      },
+      LOD17_url: {
+        type: DataTypes.STRING
+      },
+      LOD17_size: {
+        type: DataTypes.NUMBER
       },
       licensing: {
         type: DataTypes.STRING
@@ -67,9 +157,6 @@ export default (app: Application) => {
       },
       tags: {
         type: DataTypes.JSON
-      },
-      originalURL: {
-          type: DataTypes.STRING
       }
     },
     {
