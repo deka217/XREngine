@@ -28,11 +28,12 @@ export class Audio extends Service<AudioInterface> {
 
   // @ts-ignore
   async create(data: CreateAudioType, params?: UserParams): Promise<AudioInterface> {
+    console.log('Audio create', data)
     const self = this
     const query = {
       $select: ['id']
     } as any
-    if (data.src) query.src = data.src
+    // if (data.src) query.src = data.src
     return this.Model.create(data)
   }
 

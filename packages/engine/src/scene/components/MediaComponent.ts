@@ -235,7 +235,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
     function updateTrackMetadata() {
       clearErrors(entity, MediaComponent)
 
-      const paths = media.resources.value.map((resource) => resource.path)
+      const paths = media.resources.value.map((resource) => resource.mp3StaticResource.LOD0_url || resource.mp4StaticResourceLOD0_url)
 
       for (const path of paths) {
         const assetClass = AssetLoader.getAssetClass(path).toLowerCase()

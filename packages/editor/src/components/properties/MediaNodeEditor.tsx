@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { StaticResourceService } from '@xrengine/client-core/src/media/services/StaticResourceService'
 import { AssetLoader } from '@xrengine/engine/src/assets/classes/AssetLoader'
 import { AllFileTypes } from '@xrengine/engine/src/assets/constants/fileTypes'
 import { getComponent, useComponent } from '@xrengine/engine/src/ecs/functions/ComponentFunctions'
@@ -48,22 +49,16 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
     media.paused.set(!media.paused.value)
   }
 
-  const updateResources = (e) => {
-    console.log('props', props, props.node.entity.type)
+  const updateResources = async (e) => {
+    console.log('node', props.node, props.node.entity, props.node.component)
+    console.log('media', media)
     console.log('updateResources', e)
-    const resources = e.map((path) => {
+    const resources = await Promise.all(e.map(async (path) => {
       console.log('path', path)
-      const matchingCurrentMedia = media.resources.find(
-        (resource) => resource.path === path && resource.type === type && resource.id != null
-      )
-      console.log('match current media', matchingCurrentMedia)
-      const returned = {
-        path
-      }
-      if (matchingCurrentMedia) returned.id = matchingCurrentMedia.id
-      console.log('returned', returned)
-      return returned
-    })
+      const existingMedia = await StaticResourceService.uploadAudio(path)
+      console.log('existing media', existingMedia)
+      return existingMedia
+    }))
     console.log('resources', resources)
 
     updateProperty(MediaComponent, 'resources')(resources)
@@ -112,7 +107,7 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
       <ArrayInputGroup
         name="Source Paths"
         prefix="Content"
-        values={media.resources.value.map((resource) => resource.path)}
+        values={media.resources.value.map((resource) => resource.path || resource.mp3StaticResource.LOD0_url)}
         onChange={updateResources}
         label={t('editor:properties.media.paths')}
         acceptFileTypes={AllFileTypes}

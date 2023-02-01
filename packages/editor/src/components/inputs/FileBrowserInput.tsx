@@ -11,6 +11,8 @@ import { ControlledStringInput, StringInputProp } from './StringInput'
  * Function component used for rendering FileBrowserInput.
  *
  * @param {function} onChange
+ * @param {string} acceptFileTypes
+ * @param {object} acceptDropItems
  * @param {any} rest
  * @returns
  */

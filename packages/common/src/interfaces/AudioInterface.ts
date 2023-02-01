@@ -3,5 +3,7 @@ export interface AudioInterface {
   name?: string
   tags?: string[]
   duration: number
-  src: string
+  mp3StaticResourceId?: string
+  oggStaticResourceId?: string
+  mpegStaticResourceId?: string
 }

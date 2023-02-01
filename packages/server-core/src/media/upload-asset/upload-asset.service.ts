@@ -19,6 +19,7 @@ import { uploadAvatarStaticResource } from '../../user/avatar/avatar-helper'
 import { getCachedURL } from '../storageprovider/getCachedURL'
 import { getStorageProvider } from '../storageprovider/storageprovider'
 import hooks from './upload-asset.hooks'
+import {createHash} from "crypto";
 
 const multipartMiddleware = multer({ limits: { fieldSize: Infinity } })
 
@@ -52,7 +53,10 @@ export const addGenericAssetToS3AndStaticResources = async (
   })
 
   let returned: Promise<StaticResourceInterface>
-  const promises: Promise<any>[] = []
+  let promises: Promise<any>[] = []
+  let putResponse
+
+  const hash = args.hash || createHash('sha3-256').update(file).digest('hex')
 
   // upload asset to storage provider
   promises.push(
@@ -73,20 +77,25 @@ export const addGenericAssetToS3AndStaticResources = async (
           isDirectory: false
         }
       )
+        console.log('putResponse', putResponse)
       resolve()
     })
   )
 
   // add asset to static resources
   const assetURL = getCachedURL(key, provider.cacheDomain)
+  promises = []
   try {
     if (existingAsset.rows.length) {
+        console.log('Asset exists', file.length)
       promises.push(provider.deleteResources([existingAsset.rows[0].id]))
       promises.push(
         app.service('static-resource').patch(
           existingAsset.rows[0].id,
           {
-            url: assetURL,
+            LOD0_url: assetURL,
+            LOD0_size: file.length,
+            hash,
             key: key,
             mimeType: mimeType,
             staticResourceType: args.staticResourceType,
@@ -101,7 +110,9 @@ export const addGenericAssetToS3AndStaticResources = async (
           try {
             const newResource = await app.service('static-resource').create(
               {
-                url: assetURL,
+                hash,
+                LOD0_url: assetURL,
+                LOD0_size: file.length,
                 key: key,
                 mimeType: mimeType,
                 staticResourceType: args.staticResourceType,

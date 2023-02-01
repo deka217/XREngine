@@ -233,35 +233,36 @@ export class Scene implements ServiceMethods<any> {
 
       for (const [, entity] of Object.entries(sceneData!.entities)) {
         for (const [, component] of Object.entries(entity)) {
-        console.log('entity', entity)
-        switch (component.name) {
-          case 'audio':
-            await uploadAudio(this.app, component, projectName)
-            break
-          case 'video':
-            await uploadVideo(this.app, component, projectName)
-            break
-          case 'volumetric':
-            await uploadVolumetric(this.app, component, projectName)
-            break
-          case 'model':
-            await uploadModel(this.app, component, projectName)
-            break
-          case 'animation':
-            await uploadAnimation(this.app, component, projectName)
-            break
-          case 'material':
-            await uploadMaterial(this.app, component, projectName)
-            break
-          case 'script':
-            await uploadScript(this.app, component, projectName)
-            break
-          case 'cubemap':
-            await uploadCubemap(this.app, component, projectName)
-            break
-          case 'image':
-            await uploadImage(this.app, component, projectName)
-            break
+          console.log('entity', entity)
+          switch (component.name) {
+            case 'audio':
+              await uploadAudio(this.app, component, projectName)
+              break
+            case 'video':
+              await uploadVideo(this.app, component, projectName)
+              break
+            case 'volumetric':
+              await uploadVolumetric(this.app, component, projectName)
+              break
+            case 'model':
+              await uploadModel(this.app, component, projectName)
+              break
+            case 'animation':
+              await uploadAnimation(this.app, component, projectName)
+              break
+            case 'material':
+              await uploadMaterial(this.app, component, projectName)
+              break
+            case 'script':
+              await uploadScript(this.app, component, projectName)
+              break
+            case 'cubemap':
+              await uploadCubemap(this.app, component, projectName)
+              break
+            case 'image':
+              await uploadImage(this.app, component, projectName)
+              break
+          }
         }
       }
 

@@ -21,6 +21,10 @@ export default (app: Application) => {
         defaultValue: (): string => generateShortId(8),
         allowNull: false
       },
+      hash: {
+        type: DataTypes.STRING,
+          allowNull: false
+      },
       url: {
         type: DataTypes.STRING,
         allowNull: true
@@ -45,109 +49,109 @@ export default (app: Application) => {
         type: DataTypes.STRING
       },
       LOD0_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD1_url: {
         type: DataTypes.STRING
       },
       LOD1_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD2_url: {
         type: DataTypes.STRING
       },
       LOD2_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD3_url: {
         type: DataTypes.STRING
       },
       LOD3_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD4_url: {
         type: DataTypes.STRING
       },
       LOD4_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD5_url: {
         type: DataTypes.STRING
       },
       LOD5_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD6_url: {
         type: DataTypes.STRING
       },
       LOD6_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD7_url: {
         type: DataTypes.STRING
       },
       LOD7_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD8_url: {
         type: DataTypes.STRING
       },
       LOD8_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD9_url: {
         type: DataTypes.STRING
       },
       LOD9_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD10_url: {
         type: DataTypes.STRING
       },
       LOD10_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD11_url: {
         type: DataTypes.STRING
       },
       LOD11_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD12_url: {
         type: DataTypes.STRING
       },
       LOD12_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD13_url: {
         type: DataTypes.STRING
       },
       LOD13_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD14_url: {
         type: DataTypes.STRING
       },
       LOD14_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD15_url: {
         type: DataTypes.STRING
       },
       LOD15_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD16_url: {
         type: DataTypes.STRING
       },
       LOD16_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       LOD17_url: {
         type: DataTypes.STRING
       },
       LOD17_size: {
-        type: DataTypes.NUMBER
+        type: DataTypes.INTEGER
       },
       licensing: {
         type: DataTypes.STRING

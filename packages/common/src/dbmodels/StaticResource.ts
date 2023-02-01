@@ -3,6 +3,7 @@ export interface StaticResourceInterface {
   sid: string
   url: string
   key: string
+  hash?: string
   mimeType: string
   metadata: any
   project?: string

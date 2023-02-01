@@ -16,6 +16,8 @@ import Video from './video/video.service'
 import Volumetric from './volumetric/volumetric.service'
 
 export default [
+  StaticResourceType,
+  StaticResource,
   Animation,
   Audio,
   Cubemap,
@@ -27,8 +29,6 @@ export default [
   Rig,
   Script,
   SerializedEntity,
-  StaticResourceType,
-  StaticResource,
   Upload,
   Video,
   Volumetric
