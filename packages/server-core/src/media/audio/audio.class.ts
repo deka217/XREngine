@@ -52,7 +52,16 @@ export class Audio extends Service<AudioInterface> {
     const result = await super.Model.findAndCountAll({
       include: [
         {
-          model: this.app.service('static-resource').Model
+          model: this.app.service('static-resource').Model,
+          as: 'mp3StaticResource'
+        },
+        {
+          model: this.app.service('static-resource').Model,
+          as: 'mpegStaticResource'
+        },
+        {
+          model: this.app.service('static-resource').Model,
+          as: 'oggStaticResource'
         }
       ],
       limit: limit,

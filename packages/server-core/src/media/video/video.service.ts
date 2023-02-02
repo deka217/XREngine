@@ -7,6 +7,7 @@ import { Video } from './video.class'
 import videoDocs from './video.docs'
 import hooks from './video.hooks'
 import createModel from './video.model'
+import {videoUpload} from "./video-upload.helper";
 
 declare module '@xrengine/common/declarations' {
   interface ServiceTypes {
@@ -38,4 +39,16 @@ export default (app: Application) => {
   const service = app.service('video')
 
   service.hooks(hooks)
+
+  app.use('video-upload', {
+    create: async(data, params) => {
+      return videoUpload(app, data, params)
+    }
+  })
+
+  app.service('video-upload').hooks({
+    before: {
+      get: [authenticate(), verifyScope('editor', 'write')]
+    }
+  })
 }

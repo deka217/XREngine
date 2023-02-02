@@ -61,7 +61,12 @@ export class Video extends Service<VideoInterface> {
     const result = await super.Model.findAndCountAll({
       include: [
         {
-          model: this.app.service('static-resource').Model
+          model: this.app.service('static-resource').Model,
+          as: 'mp4StaticResource'
+        },
+        {
+          model: this.app.service('static-resource').Model,
+          as: 'm3u8StaticResource'
         }
       ],
       limit: limit,

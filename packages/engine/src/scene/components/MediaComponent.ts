@@ -3,6 +3,7 @@ import { startTransition, useEffect } from 'react'
 import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
 
 import { EntityUUID } from '@xrengine/common/src/interfaces/EntityUUID'
+import { StaticResourceInterface } from '@xrengine/common/src/interfaces/StaticResourceInterface'
 import { getState, none, useHookstate } from '@xrengine/hyperflux'
 
 import { AssetLoader } from '../../assets/classes/AssetLoader'
@@ -37,7 +38,14 @@ const AUDIO_TEXTURE_PATH = '/static/editor/audio-icon.png'
 export const AudioNodeGroups = new WeakMap<HTMLMediaElement | MediaStream, AudioNodeGroup>()
 
 export type MediaResource = {
-  path: string
+  path?: string
+  mp3StaticResource?: StaticResourceInterface
+  mpegStaticResource?: StaticResourceInterface
+  oggStaticResource?: StaticResourceInterface
+  mp4StaticResource?: StaticResourceInterface
+  m3u8StaticResource?: StaticResourceInterface
+  drcsStaticResource?: StaticResourceInterface
+  uvolStaticResource?: StaticResourceInterface
   mediaType: 'audio' | 'video' | 'volumetric'
   id?: EntityUUID
 }
@@ -235,8 +243,18 @@ export function MediaReactor({ root }: EntityReactorProps) {
     function updateTrackMetadata() {
       clearErrors(entity, MediaComponent)
 
-      const paths = media.resources.value.map((resource) => resource.mp3StaticResource.LOD0_url || resource.mp4StaticResourceLOD0_url)
+      console.log('media resources', media.resources.value)
+      const paths = media.resources.value.map((resource) =>
+          resource.mp3StaticResource?.LOD0_url ||
+          resource.mpegStaticResource?.LOD0_url ||
+          resource.oggStaticResource?.LOD0_url ||
+          resource.mp4StaticResource?.LOD0_url ||
+          resource.uvolStaticResource?.LOD0_url ||
+          resource.drcsStaticResource?.LOD0_url ||
+          resource.path || ''
+      )
 
+      console.log('paths', paths)
       for (const path of paths) {
         const assetClass = AssetLoader.getAssetClass(path).toLowerCase()
         if (assetClass !== 'audio' && assetClass !== 'video') {

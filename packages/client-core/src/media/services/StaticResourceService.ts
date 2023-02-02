@@ -26,6 +26,21 @@ export const StaticResourceService = {
     return API.instance.client.service('audio-upload').create({
       url
     })
+  },
+  async uploadImage (url: string) {
+    return API.instance.client.service('image-upload').create({
+      url
+    })
+  },
+  async uploadVideo (url: string) {
+    return API.instance.client.service('video-upload').create({
+      url
+    })
+  },
+  async uploadVolumetric (url: string) {
+    return API.instance.client.service('volumetric-upload').create({
+      url
+    })
   }
 }
 

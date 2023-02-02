@@ -43,10 +43,12 @@ export default (app: Application) => {
   ;(video as any).associate = (models: any): void => {
     ;(video as any).belongsTo(models.static_resource, {
       foreignKey: 'mp4StaticResourceId',
+      as: 'mp4StaticResource',
       required: false
     })
     ;(video as any).belongsTo(models.static_resource, {
         foreignKey: 'm3u8StaticResourceId',
+        as: 'm3u8StaticResource',
         required: false
     })
     ;(video as any).belongsTo(models.image, {

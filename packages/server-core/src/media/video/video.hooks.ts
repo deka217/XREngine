@@ -16,16 +16,21 @@ export default {
       addAssociations({
         models: [
           {
-            model: 'static-resource'
+            model: 'static-resource',
+            as: 'mp4StaticResource'
+          },
+          {
+            model: 'static-resource',
+            as: 'm3u8StaticResource'
           }
         ]
       })
     ],
     get: [disallow('external')],
-    create: [authenticate(), verifyScope('admin', 'admin')],
-    update: [authenticate(), verifyScope('admin', 'admin')],
-    patch: [authenticate(), verifyScope('admin', 'admin')],
-    remove: [authenticate(), verifyScope('admin', 'admin')]
+    create: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    update: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    patch: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    remove: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)]
   },
 
   after: {

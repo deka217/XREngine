@@ -16,7 +16,16 @@ export default {
       addAssociations({
         models: [
           {
-            model: 'static-resource'
+            model: 'static-resource',
+            as: 'mp3StaticResource'
+          },
+          {
+            model: 'static-resource',
+            as: 'mpegStaticResource'
+          },
+          {
+            model: 'static-resource',
+            as: 'oggStaticResource'
           }
         ]
       })

@@ -1,6 +1,10 @@
 
-import { getAudioDurationInSeconds } from 'get-audio-duration'
-import mp3Duration from 'mp3-duration'
+import * as ffprobe from '@ffprobe-installer/ffprobe'
+
+import execa from 'execa'
+import isStream from 'is-stream'
+
+import { getVideoDurationInSeconds } from 'get-video-duration'
 import fetch from "node-fetch";
 import {guessContentType} from "@xrengine/common/src/utils/guessContentType";
 import {Readable} from "stream";
@@ -8,10 +12,32 @@ import {createHash} from "crypto";
 import { Op } from 'sequelize'
 
 import logger from "../../ServerLogger";
-import { uploadMediaStaticResource } from '../static-resource/static-resource-helper'
+import {uploadMediaStaticResource} from "../static-resource/static-resource-helper";
 import {Application} from "../../../declarations";
 
-export const audioUpload = async (app: Application, data, params) => {
+const getFFprobeWrappedExecution = (
+    input: string | Readable,
+    ffprobePath?: string
+): execa.ExecaChildProcess => {
+    const params = ['-v', 'error', '-show_format', '-show_streams']
+
+    const overridenPath = ffprobePath || ffprobe.path
+
+    if (typeof input === 'string') {
+        return execa(overridenPath, [...params, input])
+    }
+
+    if (isStream(input)) {
+        return execa(overridenPath, [...params, '-i', 'pipe:0'], {
+            reject: false,
+            input,
+        })
+    }
+
+    throw new Error('Given input was neither a string nor a Stream')
+}
+
+export const videoUpload = async (app: Application, data, params) => {
     try {
         const file = await fetch(data.url)
         console.log('file', file, file.status, file.headers)
@@ -21,7 +47,7 @@ export const audioUpload = async (app: Application, data, params) => {
         const body = Buffer.from(await file.arrayBuffer())
         console.log('body', body)
         const hash = createHash('sha3-256').update(body).digest('hex')
-        console.log('audio hash', hash)
+        console.log('video hash', hash)
         let existingResource
         try {
             existingResource = await app.service('static-resource').Model.findOne({
@@ -30,26 +56,26 @@ export const audioUpload = async (app: Application, data, params) => {
                 }
             })
         } catch(err) {}
-
+        const stream = new Readable()
+        stream.push(body)
+        stream.push(null)
+        console.log('readStream', stream)
+        const { stdout } = await getFFprobeWrappedExecution(stream)
+        console.log('stdout', stdout)
         if (existingResource) {
             const searchParams = {} as any
             if (extension === 'mp3') searchParams.mp3StaticResourceId = hash
 
-            const audio = await app.service('audio').Model.findOne({
+            const video = await app.service('video').Model.findOne({
                 where: {
                     [Op.or]: [
                         {
-                            mp3StaticResourceId: {
+                            mp4StaticResourceId: {
                                 [Op.eq]: existingResource.id
                             }
                         },
                         {
-                            mpegStaticResourceId: {
-                                [Op.eq]: existingResource.id
-                            }
-                        },
-                        {
-                            oggStaticResourceId: {
+                            m3u8StaticResourceId: {
                                 [Op.eq]: existingResource.id
                             }
                         }
@@ -58,90 +84,74 @@ export const audioUpload = async (app: Application, data, params) => {
                 include: [
                     {
                         model: app.service('static-resource').Model,
-                        as: 'oggStaticResource'
+                        as: 'm3u8StaticResource'
                     },
                     {
                         model: app.service('static-resource').Model,
-                        as: 'mp3StaticResource',
-                    },
-                    {
-                        model: app.service('static-resource').Model,
-                        as: 'mpegStaticResource',
+                        as: 'mp4StaticResource',
                     }
                 ]
             })
-            console.log('matching audio', audio)
-            return audio
+            console.log('matching video', video)
+            return video
         } else {
-            let audioDuration
-            if (extension === 'mp3') {
-                audioDuration = await new Promise((resolve, reject) => mp3Duration(body, (err, duration) => {
-                    console.log('mp3Duration', err, duration)
-                    if (err) reject(err)
-                    resolve(audioDuration = duration * 1000)
-                }))
-            } else {
-                const stream = new Readable()
-                stream.push(body)
-                stream.push(null)
-                console.log('readStream', stream)
-                audioDuration = await getAudioDurationInSeconds(stream)
-            }
-            console.log('audio duration', audioDuration)
-            const newAudio = await app.service('audio').create({
-                duration: audioDuration
+            let videoDuration
+            const stream = new Readable()
+            stream.push(body)
+            stream.push(null)
+            console.log('readStream', stream)
+            videoDuration = await getVideoDurationInSeconds(stream) * 1000
+            console.log('video duration', videoDuration)
+            const newVideo = await app.service('video').create({
+                duration: videoDuration
             })
-            console.log('new audio', newAudio)
+            console.log('new video', newVideo)
             console.log('data')
             const args = Object.assign({})
-            args.audioId = newAudio.id
-            args.audioFileType = extension
-            console.log('calling uploadAudioStaticResource')
-            const [audio, thumbnail] = await uploadMediaStaticResource(
+            args.videoId = newVideo.id
+            args.videoFileType = extension
+            console.log('calling uploadVideoStaticResource')
+            const [video, thumbnail] = await uploadMediaStaticResource(
                 app,
                 {
                     media: body,
                     hash,
-                    mediaId: newAudio.id,
+                    mediaId: newVideo.id,
                     mediaFileType: extension
                 }
             )
 
-            console.log('uploaded audio and thumbnail resources', audio, thumbnail)
+            console.log('uploaded video and thumbnail resources', video, thumbnail)
             const update = {} as any
-            if (audio?.id) {
+            if (video?.id) {
                 const staticResourceColumn = `${extension}StaticResourceId`
-                update[staticResourceColumn] = audio.id
+                update[staticResourceColumn] = video.id
             }
             if (thumbnail?.id) update.thumbnail = thumbnail.id
             try {
-                await app.service('audio').patch(newAudio.id, update)
+                await app.service('video').patch(newVideo.id, update)
             } catch (err) {
-                logger.error('error updating audio with resources')
+                logger.error('error updating video with resources')
                 logger.error(err)
                 throw err
             }
-            return app.service('audio').get(newAudio.id, {
+            return app.service('video').get(newVideo.id, {
                 sequelize: {
                     include: [
                         {
                             model: app.service('static-resource').Model,
-                            as: 'oggStaticResource'
+                            as: 'm3u8StaticResource'
                         },
                         {
                             model: app.service('static-resource').Model,
-                            as: 'mp3StaticResource',
-                        },
-                        {
-                            model: app.service('static-resource').Model,
-                            as: 'mpegStaticResource',
+                            as: 'mp4StaticResource',
                         }
                     ]
                 }
             })
         }
     } catch (err) {
-        logger.error('audio upload error')
+        logger.error('video upload error')
         logger.error(err)
         throw err
     }

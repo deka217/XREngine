@@ -5,33 +5,42 @@ import {CommonKnownContentTypes} from "@xrengine/common/src/utils/CommonKnownCon
 import logger from "../../ServerLogger";
 
 
-export type AudioUploadArguments = {
-    audio: Buffer
+export type MediaUploadArguments = {
+    media: Buffer
     thumbnail?: Buffer
     hash: string
-    audioId: string
+    mediaId: string
     // fileName: string
-    audioFileType: string
+    mediaFileType: string
 }
 
-export const uploadAudioStaticResource = async (
+export type VideoUploadArguments = {
+    video: Buffer
+    thumbnail?: Buffer
+    hash: string
+    videoId: string
+    // fileName: string
+    videoFileType: string
+}
+
+export const uploadMediaStaticResource = async (
     app: Application,
-    data: AudioUploadArguments,
+    data: MediaUploadArguments,
     params?: UserParams
 ) => {
-    console.log('uploadAudioStaticResources', data)
+    console.log('uploadMediaStaticResources', data)
     // const name = data.fileName ? data.fileName : 'audio-' + Math.round(Math.random() * 100000)
 
-    const key = `static-resources/audio/${data.hash}/`
+    const key = `static-resources/audio/${data.hash}`
 
     console.log('key', key)
     // const thumbnail = await generateAvatarThumbnail(data.avatar as Buffer)
     // if (!thumbnail) throw new Error('Thumbnail generation failed - check the model')
 
-    const audioPromise = addGenericAssetToS3AndStaticResources(app, data.audio, CommonKnownContentTypes[data.audioFileType], {
+    const audioPromise = addGenericAssetToS3AndStaticResources(app, data.media, CommonKnownContentTypes[data.mediaFileType], {
         hash: data.hash,
         userId: params?.user!.id,
-        key: `${key}/LOD0.${data.audioFileType}`,
+        key: `${key}/LOD0.${data.mediaFileType}`,
         staticResourceType: 'audio'
     })
 
@@ -43,22 +52,6 @@ export const uploadAudioStaticResource = async (
     }) : Promise.resolve()
 
     const [audioResource, thumbnailResource] = await Promise.all([audioPromise, thumbnailPromise])
-
-    logger.info('Successfully uploaded avatar %o %o', audioResource, thumbnailResource)
-
-    const staticResourceColumn = `${data.audioFileType}StaticResourceId`
-    if (data.audioId) {
-        const update = {
-            [staticResourceColumn]: audioResource.id
-        } as any
-        if (thumbnailResource?.id)
-            update.thumbnail = thumbnailResource.id
-        try {
-            await app.service('audio').patch(data.audioId, update)
-        } catch (err) {
-            logger.error('error updating audio with resources', err)
-        }
-    }
 
     return [audioResource, thumbnailResource]
 }

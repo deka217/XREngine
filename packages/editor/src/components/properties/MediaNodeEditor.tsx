@@ -8,6 +8,7 @@ import { getComponent, useComponent } from '@xrengine/engine/src/ecs/functions/C
 import { getEntityErrors } from '@xrengine/engine/src/scene/components/ErrorComponent'
 import { MediaComponent } from '@xrengine/engine/src/scene/components/MediaComponent'
 import { PlayMode } from '@xrengine/engine/src/scene/constants/PlayMode'
+import { AudioFileTypes, ImageFileTypes, VideoFileTypes, VolumetricFileTypes} from "@xrengine/engine/src/assets/constants/fileTypes";
 
 import { SupportedFileTypes } from '../../constants/AssetTypes'
 import { PrefabFileType } from '../assets/FileBrowserContentPanel'
@@ -55,7 +56,16 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
     console.log('updateResources', e)
     const resources = await Promise.all(e.map(async (path) => {
       console.log('path', path)
-      const existingMedia = await StaticResourceService.uploadAudio(path)
+      const extension = `.${path.split('.').pop()}`
+      let existingMedia
+      if (AudioFileTypes.indexOf(extension) > -1)
+        existingMedia = await StaticResourceService.uploadAudio(path)
+      else if (ImageFileTypes.indexOf(extension) > -1)
+        existingMedia = await StaticResourceService.uploadImage(path)
+      else if (VideoFileTypes.indexOf(extension) > -1)
+        existingMedia = await StaticResourceService.uploadVideo(path)
+      else if (VolumetricFileTypes.indexOf(extension) > -1)
+        existingMedia = await StaticResourceService.uploadVolumetric(path)
       console.log('existing media', existingMedia)
       return existingMedia
     }))
@@ -63,6 +73,8 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
 
     updateProperty(MediaComponent, 'resources')(resources)
   }
+
+  console.log('media.resources', media.resources.value)
 
   return (
     <NodeEditor
@@ -107,7 +119,15 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
       <ArrayInputGroup
         name="Source Paths"
         prefix="Content"
-        values={media.resources.value.map((resource) => resource.path || resource.mp3StaticResource.LOD0_url)}
+        values={media.resources.value.map((resource) =>
+            resource.mp3StaticResource?.LOD0_url ||
+            resource.mpegStaticResource?.LOD0_url ||
+            resource.oggStaticResource?.LOD0_url ||
+            resource.mp4StaticResource?.LOD0_url ||
+            resource.uvolStaticResource?.LOD0_url ||
+            resource.drcsStaticResource?.LOD0_url ||
+            resource.path ||''
+        )}
         onChange={updateResources}
         label={t('editor:properties.media.paths')}
         acceptFileTypes={AllFileTypes}
