@@ -1,5 +1,5 @@
 import { Downgraded } from '@hookstate/core'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { API } from '@xrengine/client-core/src/API'
@@ -16,6 +16,7 @@ import { KTX2EncodeArguments } from '@xrengine/engine/src/assets/constants/Compr
 import { KTX2EncodeDefaultArguments } from '@xrengine/engine/src/assets/constants/CompressionParms'
 import { MediaPrefabs } from '@xrengine/engine/src/audio/systems/MediaSystem'
 import { ScenePrefabs } from '@xrengine/engine/src/scene/systems/SceneObjectUpdateSystem'
+import { useState } from '@xrengine/hyperflux'
 import { useState as useHFState } from '@xrengine/hyperflux'
 import { addActionReceptor, removeActionReceptor } from '@xrengine/hyperflux'
 
@@ -96,24 +97,22 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
   const [anchorPosition, setAnchorPosition] = React.useState<undefined | PopoverPosition>(undefined)
   const open = Boolean(anchorEl)
-  const [isLoading, setLoading] = useState(true)
-  const [selectedDirectory, setSelectedDirectory] = useState(
-    `/projects/${props.selectedFile ? props.selectedFile + '/' : ''}`
-  )
+  const isLoading = useState(true)
+  const selectedDirectory = useState(`/projects/${props.selectedFile ? props.selectedFile + '/' : ''}`)
   const fileState = useFileBrowserState()
   const filesValue = fileState.files.attach(Downgraded).value
   const { skip, total, retrieving } = fileState.value
-  const [fileProperties, setFileProperties] = useState<any>(null)
-  const [openProperties, setOpenPropertiesModal] = useState(false)
-  const [openCompress, setOpenCompress] = useState(false)
+  const fileProperties = useState<any>(null)
+  const openProperties = useState(false)
+  const openCompress = useState(false)
   const compressProperties = useHFState<KTX2EncodeArguments>(KTX2EncodeDefaultArguments)
-  const [openConfirm, setOpenConfirm] = useState(false)
-  const [contentToDeletePath, setContentToDeletePath] = useState('')
-  const [contentToDeleteType, setContentToDeleteType] = useState('')
+  const openConfirm = useState(false)
+  const contentToDeletePath = useState('')
+  const contentToDeleteType = useState('')
 
   const page = skip / FILES_PAGE_LIMIT
 
-  const breadcrumbs = selectedDirectory
+  const breadcrumbs = selectedDirectory.value
     .slice(1, -1)
     .split('/')
     .map((file, index, arr) => {
@@ -162,11 +161,11 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
   }, [])
 
   useEffect(() => {
-    setLoading(false)
+    isLoading.set(false)
   }, [filesValue])
 
   useEffect(() => {
-    FileBrowserService.fetchFiles(selectedDirectory)
+    FileBrowserService.fetchFiles(selectedDirectory.value)
   }, [selectedDirectory])
 
   const onSelect = (params: FileDataType) => {
@@ -177,8 +176,8 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
         contentType: params.type
       })
     } else {
-      const newPath = `${selectedDirectory}${params.name}/`
-      setSelectedDirectory(newPath)
+      const newPath = `${selectedDirectory.value}${params.name}/`
+      selectedDirectory.set(newPath)
     }
   }
 
@@ -199,21 +198,21 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
   }
 
   const handlePageChange = async (_event, newPage: number) => {
-    await FileBrowserService.fetchFiles(selectedDirectory, newPage)
+    await FileBrowserService.fetchFiles(selectedDirectory.value, newPage)
   }
 
   const createNewFolder = async () => {
     handleClose()
 
-    await FileBrowserService.addNewFolder(`${selectedDirectory}New_Folder`)
-    await FileBrowserService.fetchFiles(selectedDirectory)
+    await FileBrowserService.addNewFolder(`${selectedDirectory.value}New_Folder`)
+    await FileBrowserService.fetchFiles(selectedDirectory.value)
   }
 
   const dropItemsOnPanel = async (data: FileDataType | DnDFileType, dropOn?: FileDataType) => {
-    if (isLoading) return
+    if (isLoading.value) return
 
-    setLoading(true)
-    const path = dropOn?.isFolder ? dropOn.key : selectedDirectory
+    isLoading.set(true)
+    const path = dropOn?.isFolder ? dropOn.key : selectedDirectory.value
 
     if (isFileDataType(data)) {
       if (dropOn?.isFolder) {
@@ -237,18 +236,18 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
   }
 
   const onRefreshDirectory = async () => {
-    await FileBrowserService.fetchFiles(selectedDirectory, page)
+    await FileBrowserService.fetchFiles(selectedDirectory.value, page)
   }
 
   const onBackDirectory = () => {
     const pattern = /([^\/]+)/g
-    const result = selectedDirectory.match(pattern)
+    const result = selectedDirectory.value.match(pattern)
     if (!result) return
     let newPath = '/'
     for (let i = 0; i < result.length - 1; i++) {
       newPath += result[i] + '/'
     }
-    setSelectedDirectory(newPath)
+    selectedDirectory.set(newPath)
   }
 
   const moveContent = async (
@@ -258,28 +257,28 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
     newPath: string,
     isCopy = false
   ): Promise<void> => {
-    if (isLoading) return
-    setLoading(true)
+    if (isLoading.value) return
+    isLoading.set(true)
     await FileBrowserService.moveContent(oldName, newName, oldPath, newPath, isCopy)
     await onRefreshDirectory()
   }
 
   const handleConfirmDelete = (contentPath: string, type: string) => {
-    setContentToDeletePath(contentPath)
-    setContentToDeleteType(type)
-    setOpenConfirm(true)
+    contentToDeletePath.set(contentPath)
+    contentToDeleteType.set(type)
+    openConfirm.set(true)
   }
 
   const handleConfirmClose = () => {
-    setContentToDeletePath('')
-    setContentToDeleteType('')
-    setOpenConfirm(false)
+    contentToDeletePath.set('')
+    contentToDeleteType.set('')
+    openConfirm.set(false)
   }
 
   const deleteContent = async (): Promise<void> => {
-    if (isLoading) return
-    setLoading(true)
-    setOpenConfirm(false)
+    if (isLoading.value) return
+    isLoading.set(true)
+    openConfirm.set(false)
     await FileBrowserService.deleteContent(contentToDeletePath, contentToDeleteType)
     props.onSelectionChanged({ resourceUrl: '', name: '', contentType: '' })
     await onRefreshDirectory()
@@ -288,14 +287,14 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
   const pasteContent = async () => {
     handleClose()
 
-    if (isLoading) return
-    setLoading(true)
+    if (isLoading.value) return
+    isLoading.set(true)
 
     await FileBrowserService.moveContent(
       currentContentRef.current.item.fullName,
       currentContentRef.current.item.fullName,
       currentContentRef.current.item.path,
-      selectedDirectory,
+      selectedDirectory.value,
       currentContentRef.current.isCopy
     )
 
@@ -303,10 +302,10 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
   }
 
   const compressContent = async () => {
-    compressProperties.src.set(fileProperties.url)
+    compressProperties.src.set(fileProperties.value.url)
     const compressedPath = await API.instance.client.service('ktx2-encode').create(compressProperties.value)
     await onRefreshDirectory()
-    setOpenCompress(false)
+    openCompress.set(false)
   }
 
   let currentContent = null! as { item: FileDataType; isCopy: boolean }
@@ -321,7 +320,7 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
 
   function handleClick(targetFolder: string) {
     const pattern = /([^\/]+)/g
-    const result = selectedDirectory.match(pattern)
+    const result = selectedDirectory.value.match(pattern)
     if (!result) return
     let newPath = '/'
     for (const folder of result) {
@@ -332,7 +331,7 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
         break
       }
     }
-    setSelectedDirectory(newPath)
+    selectedDirectory.set(newPath)
   }
 
   return (
@@ -380,9 +379,9 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
               moveContent={moveContent}
               deleteContent={handleConfirmDelete}
               currentContent={currentContentRef}
-              setOpenPropertiesModal={setOpenPropertiesModal}
-              setFileProperties={setFileProperties}
-              setOpenCompress={setOpenCompress}
+              setOpenPropertiesModal={openProperties.set}
+              setFileProperties={fileProperties.set}
+              setOpenCompress={openCompress.set}
               dropItemsOnPanel={dropItemsOnPanel}
             />
           ))}
@@ -406,16 +405,16 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
         <MenuItem onClick={pasteContent}>{t('editor:layout.filebrowser.pasteAsset')}</MenuItem>
       </ContextMenu>
 
-      {openCompress && fileProperties && (
+      {openCompress.value && fileProperties.value && (
         <Dialog
-          open={openCompress}
-          onClose={() => setOpenCompress(false)}
+          open={openCompress.value}
+          onClose={() => openCompress.set(false)}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
           classes={{ paper: styles.paperDialog }}
         >
           <DialogTitle style={{ padding: '0', textTransform: 'capitalize' }} id="alert-dialog-title">
-            {fileProperties?.name}
+            {fileProperties.value?.name}
           </DialogTitle>
           <Grid container spacing={3} style={{ width: '100%', margin: '2 rem' }}>
             <Grid item xs={12} style={{ paddingLeft: '10px', paddingTop: '10px', width: '100%', textAlign: 'center' }}>
@@ -472,16 +471,16 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
         </Dialog>
       )}
 
-      {openProperties && fileProperties && (
+      {openProperties.value && fileProperties.value && (
         <Dialog
-          open={openProperties}
-          onClose={() => setOpenPropertiesModal(false)}
+          open={openProperties.value}
+          onClose={() => openProperties.set(false)}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
           classes={{ paper: styles.paperDialog }}
         >
           <DialogTitle style={{ padding: '0', textTransform: 'capitalize' }} id="alert-dialog-title">
-            {`${fileProperties?.name} ${fileProperties?.type == 'folder' ? 'folder' : 'file'} Properties`}
+            {`${fileProperties.value?.name} ${fileProperties.value?.type == 'folder' ? 'folder' : 'file'} Properties`}
           </DialogTitle>
           <Grid container spacing={3} style={{ width: '100%', margin: '0' }}>
             <Grid item xs={4} style={{ paddingLeft: '10px', paddingTop: '10px', width: '100%' }}>
@@ -491,18 +490,18 @@ const FileBrowserContentPanel: React.FC<FileBrowserContentPanelProps> = (props) 
               <Typography className={styles.primatyText}>URL:</Typography>
             </Grid>
             <Grid item xs={8} style={{ paddingLeft: '10px', paddingTop: '10px', width: '100%' }}>
-              <Typography className={styles.secondaryText}>{fileProperties?.name}</Typography>
-              <Typography className={styles.secondaryText}>{fileProperties?.type}</Typography>
-              <Typography className={styles.secondaryText}>{fileProperties?.size}</Typography>
-              <Typography className={styles.secondaryText}>{fileProperties?.url}</Typography>
+              <Typography className={styles.secondaryText}>{fileProperties.value?.name}</Typography>
+              <Typography className={styles.secondaryText}>{fileProperties.value?.type}</Typography>
+              <Typography className={styles.secondaryText}>{fileProperties.value?.size}</Typography>
+              <Typography className={styles.secondaryText}>{fileProperties.value?.url}</Typography>
             </Grid>
           </Grid>
         </Dialog>
       )}
       <ConfirmDialog
-        open={openConfirm}
+        open={openConfirm.value}
         description={`${t('editor:dialog.confirmContentDelete')} ${
-          contentToDeleteType == 'folder' ? t('editor:dialog.folder') : t('editor:dialog.file')
+          contentToDeleteType.value == 'folder' ? t('editor:dialog.folder') : t('editor:dialog.file')
         }?`}
         onClose={handleConfirmClose}
         onSubmit={deleteContent}
