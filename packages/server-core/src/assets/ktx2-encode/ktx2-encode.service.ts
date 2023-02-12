@@ -19,9 +19,7 @@ declare module '@xrengine/common/declarations' {
 
 async function createKtx2(data: KTX2EncodeArguments): Promise<string> {
   const promiseExec = util.promisify(exec)
-  const serverDir = path.join(appRootPath.path, 'packages/server')
   const projectDir = path.join(appRootPath.path, 'packages/projects')
-  const tmpDir = path.join(serverDir, `tmp-${MathUtils.generateUUID()}`)
   const BASIS_U = path.join(appRootPath.path, 'packages/server/public/loader_decoders/basisu')
   const inURI = /.*(projects\/.*)$/.exec(data.src)![1]
   const inPath = path.join(projectDir, inURI)
