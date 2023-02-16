@@ -12,9 +12,11 @@ import {videoUpload} from "./video-upload.helper";
 declare module '@xrengine/common/declarations' {
   interface ServiceTypes {
     video: Video
+    'video-upload': Video
   }
   interface Models {
-    video: ReturnType<typeof createModel> & VideoInterface
+    video: ReturnType<typeof createModel> & VideoInterface,
+    'video-upload': any
   }
 }
 
@@ -41,8 +43,8 @@ export default (app: Application) => {
   service.hooks(hooks)
 
   app.use('video-upload', {
-    create: async(data, params) => {
-      return videoUpload(app, data, params)
+    create: async(data) => {
+      return videoUpload(app, data)
     }
   })
 

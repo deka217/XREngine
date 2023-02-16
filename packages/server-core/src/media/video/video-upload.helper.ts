@@ -21,14 +21,14 @@ const getFFprobeWrappedExecution = (
 ): execa.ExecaChildProcess => {
     const params = ['-v', 'error', '-show_format', '-show_streams']
 
-    const overridenPath = ffprobePath || ffprobe.path
+    const overriddenPath = ffprobePath || ffprobe.path
 
     if (typeof input === 'string') {
-        return execa(overridenPath, [...params, input])
+        return execa(overriddenPath, [...params, input])
     }
 
     if (isStream(input)) {
-        return execa(overridenPath, [...params, '-i', 'pipe:0'], {
+        return execa(overriddenPath, [...params, '-i', 'pipe:0'], {
             reject: false,
             input,
         })
@@ -37,7 +37,7 @@ const getFFprobeWrappedExecution = (
     throw new Error('Given input was neither a string nor a Stream')
 }
 
-export const videoUpload = async (app: Application, data, params) => {
+export const videoUpload = async (app: Application, data, mediaType = 'video') => {
     try {
         const file = await fetch(data.url)
         console.log('file', file, file.status, file.headers)
@@ -63,9 +63,6 @@ export const videoUpload = async (app: Application, data, params) => {
         const { stdout } = await getFFprobeWrappedExecution(stream)
         console.log('stdout', stdout)
         if (existingResource) {
-            const searchParams = {} as any
-            if (extension === 'mp3') searchParams.mp3StaticResourceId = hash
-
             const video = await app.service('video').Model.findOne({
                 where: {
                     [Op.or]: [
@@ -118,7 +115,8 @@ export const videoUpload = async (app: Application, data, params) => {
                     hash,
                     mediaId: newVideo.id,
                     mediaFileType: extension
-                }
+                },
+                mediaType
             )
 
             console.log('uploaded video and thumbnail resources', video, thumbnail)

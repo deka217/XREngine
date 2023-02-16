@@ -46,6 +46,8 @@ export type MediaResource = {
   m3u8StaticResource?: StaticResourceInterface
   drcsStaticResource?: StaticResourceInterface
   uvolStaticResource?: StaticResourceInterface
+  videoStaticResource?: StaticResourceInterface
+  dataStaticResource?: StaticResourceInterface
   mediaType: 'audio' | 'video' | 'volumetric'
   id?: EntityUUID
 }
@@ -251,6 +253,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
           resource.mp4StaticResource?.LOD0_url ||
           resource.uvolStaticResource?.LOD0_url ||
           resource.drcsStaticResource?.LOD0_url ||
+          resource.videoStaticResource?.LOD0_url ||
           resource.path || ''
       )
 

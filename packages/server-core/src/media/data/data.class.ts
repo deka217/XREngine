@@ -2,23 +2,20 @@ import { Paginated, Params } from '@feathersjs/feathers'
 import { SequelizeServiceOptions, Service } from 'feathers-sequelize'
 import { Op } from 'sequelize'
 
-import { AudioInterface } from '@xrengine/common/src/interfaces/AudioInterface'
+import { DataInterface } from '@xrengine/common/src/interfaces/DataInterface'
 
 import { Application } from '../../../declarations'
-import verifyScope from '../../hooks/verify-scope'
 import { UserParams } from '../../user/user/user.class'
-import { NotFoundException, UnauthenticatedException } from '../../util/exceptions/exception'
-import { getStorageProvider } from '../storageprovider/storageprovider'
+import { NotFoundException } from '../../util/exceptions/exception'
 
-export type CreateAudioType = {
+export type CreateDataType = {
   name?: string
   tags?: string[]
   duration?: number
-  mpegResourceId?: string
-  oggResourceId?: string
+  staticResourceId?: string
 }
 
-export class Audio extends Service<AudioInterface> {
+export class Data extends Service<DataInterface> {
   app: Application
   public docs: any
 
@@ -28,17 +25,28 @@ export class Audio extends Service<AudioInterface> {
   }
 
   // @ts-ignore
-  async create(data: CreateAudioType, params?: UserParams): Promise<AudioInterface> {
-    console.log('Audio create', data)
+  async create(data: CreateDataType, params?: UserParams): Promise<DataInterface> {
     const self = this
     const query = {
       $select: ['id']
     } as any
-    // if (data.src) query.src = data.src
-    return this.Model.create(data)
+    if (data.staticResourceId) query.src = data.staticResourceId
+    const oldResource = await this.find({
+      query
+    })
+
+    if ((oldResource as any).total > 0) {
+      return this.Model.update(data, {
+        where: {
+          name: data.name
+        }
+      }).then(() => self.Model.findOne({ where: { name: data.name } }))
+    } else {
+      return this.Model.create(data)
+    }
   }
 
-  async find(params?: Params): Promise<AudioInterface[] | Paginated<AudioInterface>> {
+  async find(params?: Params): Promise<DataInterface[] | Paginated<DataInterface>> {
     const search = params?.query?.search ?? ''
     const name = params?.query?.name ?? ''
     const sort = params?.query?.$sort
@@ -54,15 +62,7 @@ export class Audio extends Service<AudioInterface> {
       include: [
         {
           model: this.app.service('static-resource').Model,
-          as: 'mp3StaticResource'
-        },
-        {
-          model: this.app.service('static-resource').Model,
-          as: 'mpegStaticResource'
-        },
-        {
-          model: this.app.service('static-resource').Model,
-          as: 'oggStaticResource'
+          as: 'staticResource'
         }
       ],
       limit: limit,
@@ -89,13 +89,13 @@ export class Audio extends Service<AudioInterface> {
     }
   }
 
-  async remove(id: string, params?: UserParams): Promise<AudioInterface> {
+  async remove(id: string, params?: UserParams): Promise<DataInterface> {
     const resource = await super.get(id)
 
     if (!resource) {
-      throw new NotFoundException('Unable to find specified audio id.')
+      throw new NotFoundException('Unable to find specified model id.')
     }
 
-    return (await super.remove(id)) as AudioInterface
+    return (await super.remove(id)) as DataInterface
   }
 }

@@ -37,14 +37,16 @@ export default (app: Application) => {
   ;(volumetric as any).associate = (models: any): void => {
     ;(volumetric as any).belongsTo(models.static_resource, {
       foreignKey: 'drcsStaticResourceId',
+      as: 'drcsStaticResource',
       required: false
     })
     ;(volumetric as any).belongsTo(models.static_resource, {
         foreignKey: 'uvolStaticResourceId',
+        as: 'uvolStaticResource',
         required: false
     })
-    ;(volumetric as any).belongsTo(models.static_resource, {
-        foreignKey: 'manifestStaticResourceId',
+    ;(volumetric as any).belongsTo(models.data, {
+        foreignKey: 'manifestId',
         required: false
     })
     ;(volumetric as any).belongsTo(models.video, {

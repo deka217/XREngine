@@ -5,10 +5,15 @@ import { Volumetric } from './volumetric.class'
 import volumetricDocs from './volumetric.docs'
 import hooks from './volumetric.hooks'
 import createModel from './volumetric.model'
+import {videoUpload} from "../video/video-upload.helper";
+import authenticate from "../../hooks/authenticate";
+import verifyScope from "../../hooks/verify-scope";
+import {volumetricUpload} from "./volumetric-upload.helper";
 
 declare module '@xrengine/common/declarations' {
   interface ServiceTypes {
     volumetric: Volumetric
+    'volumetric-upload': Volumetric
   }
   interface Models {
     volumetric: ReturnType<typeof createModel> & VolumetricInterface
@@ -36,4 +41,17 @@ export default (app: Application) => {
   const service = app.service('volumetric')
 
   service.hooks(hooks)
+
+
+  app.use('volumetric-upload', {
+    create: async(data, params) => {
+      return volumetricUpload(app, data, params)
+    }
+  })
+
+  app.service('volumetric-upload').hooks({
+    before: {
+      get: [authenticate(), verifyScope('editor', 'write')]
+    }
+  })
 }

@@ -12,7 +12,9 @@ export type CreateVolumetricType = {
   name?: string
   tags?: string[]
   duration?: number
-  src?: string
+  videoId?: string
+  manifestId?: string
+  drcsStaticResourceId?: string
 }
 
 export class Volumetric extends Service<VolumetricInterface> {
@@ -30,7 +32,9 @@ export class Volumetric extends Service<VolumetricInterface> {
     const query = {
       $select: ['id']
     } as any
-    if (data.src) query.src = data.src
+    if (data.videoId) query.videoId = data.videoId
+    if (data.manifestId) query.manifestId = data.manifestId
+    if (data.drcsStaticResourceId) query.drcsStaticResourceId = data.drcsStaticResourceId
     const oldResource = await this.find({
       query
     })
@@ -61,7 +65,21 @@ export class Volumetric extends Service<VolumetricInterface> {
     const result = await super.Model.findAndCountAll({
       include: [
         {
-          model: this.app.service('static-resource').Model
+          model: this.app.service('static-resource').Model,
+          as: 'drcsStaticResource'
+        },
+        {
+          model: this.app.service('static-resource').Model,
+          as: 'uvolStaticResource'
+        },
+        {
+          model: this.app.service('data').Model,
+        },
+        {
+          model: this.app.service('video').Model,
+        },
+        {
+          model: this.app.service('image').Model,
         }
       ],
       limit: limit,

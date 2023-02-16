@@ -32,9 +32,6 @@ export const audioUpload = async (app: Application, data, params) => {
         } catch(err) {}
 
         if (existingResource) {
-            const searchParams = {} as any
-            if (extension === 'mp3') searchParams.mp3StaticResourceId = hash
-
             const audio = await app.service('audio').Model.findOne({
                 where: {
                     [Op.or]: [

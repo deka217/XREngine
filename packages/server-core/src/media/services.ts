@@ -1,6 +1,7 @@
 import Animation from './animation/animation.service'
 import Audio from './audio/audio.service'
 import Cubemap from './cubemap/cubemap.service'
+import Data from './data/data.service'
 import FileBrowser from './file-browser/file-browser.service'
 import Image from './image/image.service'
 import Material from './material/material.service'
@@ -21,6 +22,7 @@ export default [
   Animation,
   Audio,
   Cubemap,
+  Data,
   FileBrowser,
   Image,
   Material,

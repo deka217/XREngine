@@ -26,6 +26,7 @@ export type VideoUploadArguments = {
 export const uploadMediaStaticResource = async (
     app: Application,
     data: MediaUploadArguments,
+    mediaType: string,
     params?: UserParams
 ) => {
     console.log('uploadMediaStaticResources', data)
