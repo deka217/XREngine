@@ -96,6 +96,8 @@ export const Vector3Input = ({
     }
   }
 
+  newValue.value.set(0, 0, 0)
+
   const onChangeX = (x) => processChange('x', x)
 
   const onChangeY = (y) => processChange('y', y)
