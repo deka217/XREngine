@@ -617,11 +617,11 @@ function findFirstTwistChildBone(parent: Object3D, hand: Object3D, left: boolean
 export default function avatarBoneMatching(model: Object3D): BoneStructure {
   try {
     let Root = findRootBone(model.getObjectByProperty('type', 'Bone') as Bone)
-    const skinnedMeshes = [] as SkinnedMesh[]
-    model.traverse((obj: SkinnedMesh) => {
-      if (obj.isSkinnedMesh) skinnedMeshes.push(obj)
-    })
-    Root.updateMatrixWorld(true)
+    // const skinnedMeshes = [] as SkinnedMesh[]
+    // model.traverse((obj: SkinnedMesh) => {
+    //   if (obj.isSkinnedMesh) skinnedMeshes.push(obj)
+    // })
+    // Root.updateMatrixWorld(true)
 
     const Hips = _findHips(Root)
     const tailBones = _getTailBones(Root)

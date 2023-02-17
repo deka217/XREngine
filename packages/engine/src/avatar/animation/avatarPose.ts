@@ -36,22 +36,22 @@ const quat = new Quaternion()
 const quat2 = new Quaternion()
 
 /**
- * @param coformingBoneReference parent rerefence bone to conform to
+ * @param conformingBoneReference parent rerefence bone to conform to
  * @param conformingBone bone to conform to
  * @param targetBone target bone to derive angle from
  * @param {1 | -1} side 1 is left, -1 is right
  */
 const conformArmToTpose = (
-  coformingBoneReference: Bone | undefined,
+  conformingBoneReference: Bone | undefined,
   conformingBone: Bone | undefined,
   targetBone: Bone | undefined,
   side: 1 | -1
 ) => {
-  if (!coformingBoneReference || !conformingBone || !targetBone) return
+  if (!conformingBoneReference || !conformingBone || !targetBone) return
   conformingBone.getWorldPosition(vec1)
   targetBone.getWorldPosition(vec2)
   vec2.sub(vec1).normalize()
-  coformingBoneReference!.getWorldQuaternion(quat2)
+  conformingBoneReference!.getWorldQuaternion(quat2)
   quat2.invert()
   vec2.applyQuaternion(quat2)
   vec1.set(side, 0, 0).applyQuaternion(quat2)
