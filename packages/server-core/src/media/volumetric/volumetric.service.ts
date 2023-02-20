@@ -5,7 +5,6 @@ import { Volumetric } from './volumetric.class'
 import volumetricDocs from './volumetric.docs'
 import hooks from './volumetric.hooks'
 import createModel from './volumetric.model'
-import {videoUpload} from "../video/video-upload.helper";
 import authenticate from "../../hooks/authenticate";
 import verifyScope from "../../hooks/verify-scope";
 import {volumetricUpload} from "./volumetric-upload.helper";
@@ -13,7 +12,7 @@ import {volumetricUpload} from "./volumetric-upload.helper";
 declare module '@xrengine/common/declarations' {
   interface ServiceTypes {
     volumetric: Volumetric
-    'volumetric-upload': Volumetric
+    'volumetric-upload': any
   }
   interface Models {
     volumetric: ReturnType<typeof createModel> & VolumetricInterface

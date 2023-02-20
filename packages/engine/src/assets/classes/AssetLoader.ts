@@ -226,6 +226,8 @@ const getAssetClass = (assetFileName: string): AssetClass => {
     return AssetClass.Video
   } else if (/\.mp3|ogg|m4a|flac|wav$/.test(assetFileName)) {
     return AssetClass.Audio
+  } else if (/\.drcs|uvol$/.test(assetFileName)) {
+    return AssetClass.Volumetric
   } else {
     return AssetClass.Unknown
   }

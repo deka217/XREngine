@@ -16,16 +16,33 @@ export default {
       addAssociations({
         models: [
           {
-            model: 'static-resource'
+            model: 'static-resource',
+            as: 'pngStaticResource'
+          },
+          {
+            model: 'static-resource',
+            as: 'jpegStaticResource'
+          },
+          {
+            model: 'static-resource',
+            as: 'gifStaticResource'
+          },
+          {
+            model: 'static-resource',
+            as: 'ktx2StaticResource'
+          },
+          {
+            model: 'image',
+            as: 'thumbnail'
           }
         ]
       })
     ],
     get: [disallow('external')],
-    create: [authenticate(), verifyScope('admin', 'admin')],
-    update: [authenticate(), verifyScope('admin', 'admin')],
-    patch: [authenticate(), verifyScope('admin', 'admin')],
-    remove: [authenticate(), verifyScope('admin', 'admin')]
+    create: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    update: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    patch: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)],
+    remove: [authenticate(), iff(isProvider('external'), verifyScope('admin', 'admin') as any)]
   },
 
   after: {

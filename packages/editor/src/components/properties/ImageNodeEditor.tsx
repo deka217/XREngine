@@ -13,12 +13,18 @@ import ImageSourceProperties from './ImageSourceProperties'
 import NodeEditor from './NodeEditor'
 import ScreenshareTargetNodeEditor from './ScreenshareTargetNodeEditor'
 import { EditorComponentType, updateProperty } from './Util'
+import {StaticResourceService} from "@xrengine/client-core/src/media/services/StaticResourceService";
 
 export const ImageNodeEditor: EditorComponentType = (props) => {
   const { t } = useTranslation()
   const entity = props.node.entity
   const imageComponent = useComponent(entity, ImageComponent)
   const errors = getEntityErrors(props.node.entity, ImageComponent)
+
+  const updateResources = async (path: string) => {
+    const media = await StaticResourceService.uploadImage(path)
+    updateProperty(ImageComponent, 'resource')(media)
+  }
 
   return (
     <NodeEditor
@@ -27,7 +33,7 @@ export const ImageNodeEditor: EditorComponentType = (props) => {
       description={t('editor:properties.image.description')}
     >
       <InputGroup name="Image Url" label={t('editor:properties.image.lbl-imgURL')}>
-        <ImageInput value={imageComponent.source.value} onChange={updateProperty(ImageComponent, 'source')} />
+        <ImageInput value={imageComponent.source.value} onChange={updateResources} />
       </InputGroup>
       {errors && <div style={{ marginTop: 2, color: '#FF8C00' }}>{t('editor:properties.image.error-url')}</div>}
       <ImageSourceProperties node={props.node} multiEdit={props.multiEdit} />

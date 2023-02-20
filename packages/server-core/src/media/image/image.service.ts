@@ -5,10 +5,14 @@ import { Image } from './image.class'
 import imageDocs from './image.docs'
 import hooks from './image.hooks'
 import createModel from './image.model'
+import authenticate from "../../hooks/authenticate";
+import verifyScope from "../../hooks/verify-scope";
+import {imageUpload} from "./image-upload.helper";
 
 declare module '@xrengine/common/declarations' {
   interface ServiceTypes {
     image: Image
+    'image-upload': any
   }
   interface Models {
     image: ReturnType<typeof createModel> & ImageInterface
@@ -36,4 +40,16 @@ export default (app: Application) => {
   const service = app.service('image')
 
   service.hooks(hooks)
+
+  app.use('image-upload', {
+    create: async(data) => {
+      return imageUpload(app, data)
+    }
+  })
+
+  app.service('image-upload').hooks({
+    before: {
+      get: [authenticate(), verifyScope('editor', 'write')]
+    }
+  })
 }

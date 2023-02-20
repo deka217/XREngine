@@ -47,14 +47,17 @@ export default (app: Application) => {
     })
     ;(volumetric as any).belongsTo(models.data, {
         foreignKey: 'manifestId',
+        as: 'manifest',
         required: false
     })
     ;(volumetric as any).belongsTo(models.video, {
         foreignKey: 'videoId',
+        as: 'video',
         required: false
     })
     ;(volumetric as any).belongsTo(models.image, {
-      foreignKey: 'thumbnail',
+      foreignKey: 'thumbnailId',
+        as: 'thumbnail',
       required: false
     })
   }

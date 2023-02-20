@@ -51,11 +51,7 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
   }
 
   const updateResources = async (e) => {
-    console.log('node', props.node, props.node.entity, props.node.component)
-    console.log('media', media)
-    console.log('updateResources', e)
     const resources = await Promise.all(e.map(async (path) => {
-      console.log('path', path)
       const extension = `.${path.split('.').pop()}`
       let existingMedia
       if (AudioFileTypes.indexOf(extension) > -1)
@@ -66,15 +62,12 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
         existingMedia = await StaticResourceService.uploadVideo(path)
       else if (VolumetricFileTypes.indexOf(extension) > -1)
         existingMedia = await StaticResourceService.uploadVolumetric(path)
-      console.log('existing media', existingMedia)
       return existingMedia
     }))
     console.log('resources', resources)
 
     updateProperty(MediaComponent, 'resources')(resources)
   }
-
-  console.log('media.resources', media.resources.value)
 
   return (
     <NodeEditor

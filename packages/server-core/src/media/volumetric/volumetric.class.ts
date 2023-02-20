@@ -74,12 +74,15 @@ export class Volumetric extends Service<VolumetricInterface> {
         },
         {
           model: this.app.service('data').Model,
+          as: 'manifest'
         },
         {
           model: this.app.service('video').Model,
+          as: 'video'
         },
         {
           model: this.app.service('image').Model,
+          as: 'thumbnail'
         }
       ],
       limit: limit,

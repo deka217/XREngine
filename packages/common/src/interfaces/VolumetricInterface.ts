@@ -5,4 +5,7 @@ export interface VolumetricInterface {
   duration: number
   src: string
   thumbnail?: string
+  drcsStaticResourceId?: string
+  videoId?: string
+  manifestId?: string
 }

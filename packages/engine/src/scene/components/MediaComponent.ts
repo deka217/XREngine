@@ -32,6 +32,8 @@ import { addError, clearErrors, removeError } from '../functions/ErrorFunctions'
 import isHLS from '../functions/isHLS'
 import { setObjectLayers } from '../functions/setObjectLayers'
 import { addObjectToGroup, removeObjectFromGroup } from './GroupComponent'
+import {VideoInterface} from "@xrengine/common/src/interfaces/VideoInterface";
+import {DataInterface} from "@xrengine/common/src/interfaces/DataInterface";
 
 const AUDIO_TEXTURE_PATH = '/static/editor/audio-icon.png'
 
@@ -48,6 +50,8 @@ export type MediaResource = {
   uvolStaticResource?: StaticResourceInterface
   videoStaticResource?: StaticResourceInterface
   dataStaticResource?: StaticResourceInterface
+  manifest?: DataInterface
+  video?: VideoInterface
   mediaType: 'audio' | 'video' | 'volumetric'
   id?: EntityUUID
 }
@@ -73,6 +77,19 @@ export const createAudioNodeGroup = (
   return group
 }
 
+export const getResourceURL = (
+    resource: MediaResource
+) => {
+  return resource.mp3StaticResource?.LOD0_url ||
+      resource.mpegStaticResource?.LOD0_url ||
+      resource.oggStaticResource?.LOD0_url ||
+      resource.mp4StaticResource?.LOD0_url ||
+      resource.m3u8StaticResource?.LOD0_url ||
+      resource.video?.mp4StaticResource?.LOD0_url ||
+      resource.video?.m3u8StaticResource?.LOD0_url ||
+      resource.path || ''
+}
+
 export const MediaElementComponent = defineComponent({
   name: 'MediaElement',
 
@@ -80,12 +97,14 @@ export const MediaElementComponent = defineComponent({
     return {
       element: undefined! as HTMLMediaElement,
       hls: undefined as Hls | undefined,
+      meshFilePath: '',
+      manifestFilePath: '',
       abortController: new AbortController()
     }
   },
 
   toJSON: () => {
-    return undefined as any as { element: HTMLMediaElement }
+    return undefined as any as { element: HTMLMediaElement, meshFilePath?: string, manifestFilePath?: string }
   },
 
   onSet: (entity, component, json) => {
@@ -93,6 +112,10 @@ export const MediaElementComponent = defineComponent({
     if (!json) return
     if (typeof json.element === 'object' && json.element !== component.element.get({ noproxy: true }))
       component.element.set(json.element as HTMLMediaElement)
+    if (typeof json.element === 'object' && json.meshFilePath)
+      component.meshFilePath.set(json.meshFilePath)
+    if (typeof json.element === 'object' && json.manifestFilePath)
+      component.manifestFilePath.set(json.manifestFilePath)
   },
 
   onRemove: (entity, component) => {
@@ -247,14 +270,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
 
       console.log('media resources', media.resources.value)
       const paths = media.resources.value.map((resource) =>
-          resource.mp3StaticResource?.LOD0_url ||
-          resource.mpegStaticResource?.LOD0_url ||
-          resource.oggStaticResource?.LOD0_url ||
-          resource.mp4StaticResource?.LOD0_url ||
-          resource.uvolStaticResource?.LOD0_url ||
-          resource.drcsStaticResource?.LOD0_url ||
-          resource.videoStaticResource?.LOD0_url ||
-          resource.path || ''
+          getResourceURL(resource)
       )
 
       console.log('paths', paths)
@@ -304,7 +320,8 @@ export function MediaReactor({ root }: EntityReactorProps) {
       if (!isClient) return
 
       const track = media.track.value
-      const path = media.resources[track].path.value
+      const resource = media.resources[track].value
+      const path = getResourceURL(resource)
       if (!path) {
         if (hasComponent(entity, MediaElementComponent)) removeComponent(entity, MediaElementComponent)
         return
@@ -319,9 +336,12 @@ export function MediaReactor({ root }: EntityReactorProps) {
         return
       }
 
+      console.log('RESOURCE', resource.manifest, resource.manifest?.staticResource, resource.manifest?.staticResource?.LOD0_url)
       if (!mediaElement || mediaElement.element.nodeName.toLowerCase() !== assetClass) {
         setComponent(entity, MediaElementComponent, {
-          element: document.createElement(assetClass) as HTMLMediaElement
+          element: document.createElement(assetClass) as HTMLMediaElement,
+          meshFilePath: resource.drcsStaticResource?.LOD0_url,
+          manifestFilePath: resource.manifest?.staticResource?.LOD0_url
         })
         const mediaElementState = getComponentState(entity, MediaElementComponent)
 

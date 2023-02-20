@@ -1,3 +1,5 @@
+import {StaticResourceInterface} from "./StaticResourceInterface";
+
 export interface VideoInterface {
   id: string
   name?: string
@@ -5,6 +7,10 @@ export interface VideoInterface {
   height: number
   width: number
   duration: number
-  src: string
+  mp4StaticResourceId?: string
+  m3u8StaticResourceId?: string
+  mp4StaticResource?: StaticResourceInterface
+  m3u8StaticResource?: StaticResourceInterface
   thumbnail?: string
+  thumbnailId?: string
 }

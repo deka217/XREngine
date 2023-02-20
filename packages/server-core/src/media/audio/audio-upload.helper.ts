@@ -101,7 +101,8 @@ export const audioUpload = async (app: Application, data, params) => {
                     hash,
                     mediaId: newAudio.id,
                     mediaFileType: extension
-                }
+                },
+                'audio'
             )
 
             console.log('uploaded audio and thumbnail resources', audio, thumbnail)

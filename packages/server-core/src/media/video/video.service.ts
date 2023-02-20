@@ -12,7 +12,7 @@ import {videoUpload} from "./video-upload.helper";
 declare module '@xrengine/common/declarations' {
   interface ServiceTypes {
     video: Video
-    'video-upload': Video
+    'video-upload': any
   }
   interface Models {
     video: ReturnType<typeof createModel> & VideoInterface,

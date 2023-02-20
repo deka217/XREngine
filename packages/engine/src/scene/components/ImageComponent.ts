@@ -26,11 +26,22 @@ import { EngineRenderer } from '../../renderer/WebGLRendererSystem'
 import { ImageAlphaMode, ImageAlphaModeType, ImageProjection, ImageProjectionType } from '../classes/ImageUtils'
 import { addObjectToGroup, removeObjectFromGroup } from '../components/GroupComponent'
 import { addError, clearErrors } from '../functions/ErrorFunctions'
+import {StaticResourceInterface} from "@xrengine/common/src/interfaces/StaticResourceInterface";
+import {EntityUUID} from "@xrengine/common/src/interfaces/EntityUUID";
 
 export const PLANE_GEO = new PlaneGeometry(1, 1, 1, 1)
 export const SPHERE_GEO = new SphereGeometry(1, 64, 32)
 export const PLANE_GEO_FLIPPED = flipNormals(new PlaneGeometry(1, 1, 1, 1))
 export const SPHERE_GEO_FLIPPED = flipNormals(new SphereGeometry(1, 64, 32))
+
+export type ImageResource = {
+    source?: string
+    ktx2StaticResource?: StaticResourceInterface
+    pngStaticResource?: StaticResourceInterface
+    jpegStaticResource?: StaticResourceInterface
+    gifStaticResource?: StaticResourceInterface
+    id?: EntityUUID
+}
 
 export const ImageComponent = defineComponent({
   name: 'XRE_image',
@@ -38,6 +49,7 @@ export const ImageComponent = defineComponent({
   onInit: (entity) => {
     return {
       source: '',
+      resource: null as any as ImageResource,
       alphaMode: ImageAlphaMode.Opaque as ImageAlphaModeType,
       alphaCutoff: 0.5,
       projection: ImageProjection.Flat as ImageProjectionType,
@@ -50,6 +62,7 @@ export const ImageComponent = defineComponent({
   toJSON: (entity, component) => {
     return {
       source: component.source.value,
+      resource: component.resource.value,
       alphaMode: component.alphaMode.value,
       alphaCutoff: component.alphaCutoff.value,
       projection: component.projection.value,
@@ -58,12 +71,19 @@ export const ImageComponent = defineComponent({
   },
 
   onSet: (entity, component, json) => {
+      console.log('onSet image', json)
     if (!json) return
     // backwards compatability
     if (typeof json['imageSource'] === 'string' && json['imageSource'] !== component.source.value)
       component.source.set(json['imageSource'])
     //
-    if (typeof json.source === 'string' && json.source !== component.source.value) component.source.set(json.source)
+    if (typeof json.resource === 'object') component.source.set(
+        json.resource?.pngStaticResource?.LOD0_url ||
+        json.resource?.gifStaticResource?.LOD0_url ||
+        json.resource?.jpegStaticResource?.LOD0_url ||
+        json.resource?.ktx2StaticResource?.LOD0_url ||
+        json.source || ''
+    )
     if (typeof json.alphaMode === 'string' && json.alphaMode !== component.alphaMode.value)
       component.alphaMode.set(json.alphaMode)
     if (typeof json.alphaCutoff === 'number' && json.alphaCutoff !== component.alphaCutoff.value)
@@ -124,8 +144,13 @@ export function ImageReactor({ root }: EntityReactorProps) {
 
   useEffect(
     function updateTextureSource() {
-      const source = image.source.value
+        console.log('updateTextureSource', image, image.source.value)
+      const source = image.jp.value
 
+        // resource.jpegStaticResource?.LOD0_url ||
+        // resource.gifStaticResource?.LOD0_url ||
+        // resource.pngStaticResource?.LOD0_url ||
+        // resource.ktx2StaticResource?.LOD0_url ||
       if (!source) {
         return addError(entity, ImageComponent, `MISSING_TEXTURE_SOURCE`)
       }

@@ -1,10 +1,4 @@
-import * as ffprobe from '@ffprobe-installer/ffprobe'
-
-import execa from 'execa'
-import isStream from 'is-stream'
-
 import fetch from "node-fetch";
-import {Readable} from "stream";
 import {createHash} from "crypto";
 import { Op } from 'sequelize'
 
@@ -14,31 +8,8 @@ import {addGenericAssetToS3AndStaticResources} from "../upload-asset/upload-asse
 import {UserParams} from "../../user/user/user.class";
 import { videoUpload } from '../video/video-upload.helper'
 
-const getFFprobeWrappedExecution = (
-    input: string | Readable,
-    ffprobePath?: string
-): execa.ExecaChildProcess => {
-    const params = ['-v', 'error', '-show_format', '-show_streams']
-
-    const overriddenPath = ffprobePath || ffprobe.path
-
-    if (typeof input === 'string') {
-        return execa(overriddenPath, [...params, input])
-    }
-
-    if (isStream(input)) {
-        return execa(overriddenPath, [...params, '-i', 'pipe:0'], {
-            reject: false,
-            input,
-        })
-    }
-
-    throw new Error('Given input was neither a string nor a Stream')
-}
-
-const handleManifest = async(app: Application, params: UserParams, url: string) => {
+const handleManifest = async(app: Application, params: UserParams, url: string, name="untitled") => {
     const file = await fetch(url)
-    const extension = url.split('.').pop()
     const body = Buffer.from(await file.arrayBuffer())
 
     const hash = createHash('sha3-256').update(body).digest('hex')
@@ -75,7 +46,7 @@ const handleManifest = async(app: Application, params: UserParams, url: string) 
         })
     }
     else {
-        const key = `static-resources/volumetric/${hash}`
+        const key = `static-resources/data/${hash}/${name}`
         const dataResource = await addGenericAssetToS3AndStaticResources(app, body, 'application/octet-stream', {
             hash: hash,
             key: `${key}.manifest`,
@@ -87,7 +58,7 @@ const handleManifest = async(app: Application, params: UserParams, url: string) 
     }
 }
 
-const handleDrcs = async(app: Application, params: UserParams, url: string) => {
+const handleDrcs = async(app: Application, params: UserParams, url: string, name="untitled") => {
     const file = await fetch(url)
     const extension = url.split('.').pop()
     const body = Buffer.from(await file.arrayBuffer())
@@ -101,15 +72,9 @@ const handleDrcs = async(app: Application, params: UserParams, url: string) => {
             }
         })
     } catch(err) {}
-    const stream = new Readable()
-    stream.push(body)
-    stream.push(null)
-    console.log('readStream', stream)
-    const { stdout } = await getFFprobeWrappedExecution(stream)
-    console.log('stdout', stdout)
     if (existingResource) return existingResource
     else {
-        const key = `static-resources/volumetric/${hash}/${name}.manifest`
+        const key = `static-resources/volumetric/${hash}/${name}`
         return addGenericAssetToS3AndStaticResources(app, body, 'application/octet-stream', {
             hash: hash,
             key: `${key}.${extension}`,
@@ -121,19 +86,21 @@ const handleDrcs = async(app: Application, params: UserParams, url: string) => {
 export const volumetricUpload = async (app: Application, data, params) => {
     try {
         const root = data.url.replace(/.drcs$/, '')
+        const name = root.split('/').pop()
         const videoUrl = `${root}.mp4`
         const drcsUrl = `${root}.drcs`
         const manifestUrl = `${root}.manifest`
 
+        console.log('video, drcs, manifest url', videoUrl, drcsUrl, manifestUrl)
         const [video, manifest, drcs] = await Promise.all([
-            videoUpload(app, { url: videoUrl }, 'volumetric'),
-            handleManifest(app, params, manifestUrl),
-            handleDrcs(app, params, drcsUrl)
+            videoUpload(app, { url: videoUrl, name }, 'volumetric'),
+            handleManifest(app, params, manifestUrl, name),
+            handleDrcs(app, params, drcsUrl, name)
         ])
 
         console.log('Got children')
 
-        const existingVolumetric = await app.service('volumetric').Model.findOne({
+        let existingVolumetric = await app.service('volumetric').Model.findOne({
             where: {
                 [Op.or]: [
                     {
@@ -142,49 +109,84 @@ export const volumetricUpload = async (app: Application, data, params) => {
                         }
                     }
                 ]
+            }
+        })
+        console.log('existingVolumetric', existingVolumetric)
+        if (existingVolumetric) {
+            await app.service('volumetric').patch(existingVolumetric.id, {
+                drcsStaticResourceId: drcs.id,
+                videoId: video.id,
+                manifestId: manifest.id
+            })
+        } else {
+            existingVolumetric = await app.service('volumetric').create({
+                drcsStaticResourceId: drcs.id,
+                videoId: video.id,
+                manifestId: manifest.id
+            })
+        }
+
+        return app.service('volumetric').Model.findOne({
+            where: {
+                id: existingVolumetric.id
             },
             include: [
                 {
                     model: app.service('static-resource').Model,
                     as: 'drcsStaticResource'
+                },
+                {
+                    model: app.service('static-resource').Model,
+                    as: 'uvolStaticResource'
+                },
+                {
+                    model: app.service('data').Model,
+                    as: 'manifest',
+                    include: [
+                        {
+                            model: app.service('static-resource').Model,
+                            as: 'staticResource'
+                        }
+                    ]
+                },
+                {
+                    model: app.service('image').Model,
+                    as: 'thumbnail',
+                    include: [
+                        {
+                            model: app.service('static-resource').Model,
+                            as: 'pngStaticResource'
+                        },
+                        {
+                            model: app.service('static-resource').Model,
+                            as: 'ktx2StaticResource'
+                        },
+                        {
+                            model: app.service('static-resource').Model,
+                            as: 'jpegStaticResource'
+                        },
+                        {
+                            model: app.service('static-resource').Model,
+                            as: 'gifStaticResource'
+                        }
+                    ]
+                },
+                {
+                    model: app.service('video').Model,
+                    as: 'video',
+                    include: [
+                        {
+                            model: app.service('static-resource').Model,
+                            as: 'm3u8StaticResource'
+                        },
+                        {
+                            model: app.service('static-resource').Model,
+                            as: 'mp4StaticResource',
+                        }
+                    ]
                 }
             ]
         })
-        console.log('existingVolumetric', existingVolumetric)
-        if (existingVolumetric) {
-            return existingVolumetric
-        } else {
-            const newVolumetric = await app.service('volumetric').create({
-                drcsStaticResourceId: drcs.id,
-                videoId: video.id,
-                manifestId: manifest.id
-            })
-
-            return app.service('volumetric').Model.findOne({
-                where: {
-                    id: newVolumetric.id
-                },
-                include: [
-                    {
-                        model: app.service('static-resource').Model,
-                        as: 'drcsStaticResource'
-                    },
-                    {
-                        model: app.service('static-resource').Model,
-                        as: 'uvolStaticResource'
-                    },
-                    {
-                        model: app.service('data').Model
-                    },
-                    {
-                        model: app.service('image').Model
-                    },
-                    {
-                        model: app.service('video').Model
-                    }
-                ]
-            })
-        }
     } catch (err) {
         logger.error('volumetric upload error')
         logger.error(err)
