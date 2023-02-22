@@ -4,23 +4,15 @@ import {addGenericAssetToS3AndStaticResources} from "../upload-asset/upload-asse
 import {CommonKnownContentTypes} from "@xrengine/common/src/utils/CommonKnownContentTypes";
 import logger from "../../ServerLogger";
 
-
 export type MediaUploadArguments = {
     media: Buffer
     thumbnail?: Buffer
     hash: string
     mediaId: string
-    // fileName: string
+    fileName: string
     mediaFileType: string
-}
-
-export type VideoUploadArguments = {
-    video: Buffer
-    thumbnail?: Buffer
-    hash: string
-    videoId: string
-    // fileName: string
-    videoFileType: string
+    parentType?: string
+    parentId?: string
 }
 
 export const uploadMediaStaticResource = async (
@@ -29,7 +21,7 @@ export const uploadMediaStaticResource = async (
     mediaType: string,
     params?: UserParams
 ) => {
-    const key = `static-resources/${mediaType}/${data.hash}`
+    const key = `static-resources/${data.parentType || mediaType}/${data.parentId || data.hash}`
 
     console.log('key', key)
     // const thumbnail = await generateAvatarThumbnail(data.avatar as Buffer)
@@ -38,7 +30,7 @@ export const uploadMediaStaticResource = async (
     const mediaPromise = addGenericAssetToS3AndStaticResources(app, data.media, CommonKnownContentTypes[data.mediaFileType], {
         hash: data.hash,
         userId: params?.user!.id,
-        key: `${key}/LOD0.${data.mediaFileType}`,
+        key: `${key}/${data.fileName}.LOD0.${data.mediaFileType}`,
         staticResourceType: mediaType
     })
 

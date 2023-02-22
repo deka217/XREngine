@@ -7,11 +7,14 @@ import { Op } from 'sequelize'
 import logger from "../../ServerLogger";
 import {uploadMediaStaticResource} from "../static-resource/static-resource-helper";
 import {Application} from "../../../declarations";
+import {VolumetricInterface} from "@xrengine/common/src/interfaces/VolumetricInterface";
 
-export const videoUpload = async (app: Application, data, mediaType = 'video') => {
+export const videoUpload = async (app: Application, data, parentId?: string, parentType?: string) => {
     try {
+        console.log('videoUpload', data, parentId, parentType)
         const file = await fetch(data.url)
         const extension = data.url.split('.').pop()
+        const name = data.name
         const body = Buffer.from(await file.arrayBuffer())
         const hash = createHash('sha3-256').update(body).digest('hex')
         let existingResource
@@ -22,6 +25,7 @@ export const videoUpload = async (app: Application, data, mediaType = 'video') =
                 }
             })
         } catch(err) {}
+        console.log('existingResource', existingResource)
         const include = [
             {
                 model: app.service('static-resource').Model,
@@ -33,7 +37,7 @@ export const videoUpload = async (app: Application, data, mediaType = 'video') =
             }
         ]
         if (existingResource) {
-            return app.service('video').Model.findOne({
+            const existingVideo = await app.service('video').Model.findOne({
                 where: {
                     [Op.or]: [
                         {
@@ -50,23 +54,61 @@ export const videoUpload = async (app: Application, data, mediaType = 'video') =
                 },
                 include
             })
+
+            console.log('existingVideo', existingVideo)
+            if (existingVideo) return existingVideo
+            else {
+                console.log('making new video entry')
+                const stream = new Readable()
+                stream.push(body)
+                stream.push(null)
+                const videoDuration = await getVideoDurationInSeconds(stream) * 1000
+                const newVideo = await app.service('video').create({
+                    duration: videoDuration
+                })
+
+                console.log('newVideo', newVideo)
+                const update = {} as any
+                if (existingResource?.id) {
+                    const staticResourceColumn = `${extension}StaticResourceId`
+                    update[staticResourceColumn] = existingResource.id
+                }
+                try {
+                    await app.service('video').patch(newVideo.id, update)
+                } catch (err) {
+                    logger.error('error updating video with resources')
+                    logger.error(err)
+                    throw err
+                }
+                console.log('patched video with things', newVideo)
+                return app.service('video').get(newVideo.id, {
+                    sequelize: {
+                        include: include
+                    }
+                })
+            }
         } else {
-            let videoDuration
             const stream = new Readable()
             stream.push(body)
             stream.push(null)
-            videoDuration = await getVideoDurationInSeconds(stream) * 1000
+            const videoDuration = await getVideoDurationInSeconds(stream) * 1000
             const newVideo = await app.service('video').create({
                 duration: videoDuration
             })
+            const data = {
+                media: body,
+                hash,
+                fileName: name,
+                mediaId: newVideo.id,
+                mediaFileType: extension
+            } as any
+            if (parentId)
+                data.parentId = parentId
+            if (parentType)
+                data.parentType = parentType
             const [video, thumbnail] = await uploadMediaStaticResource(
                 app,
-                {
-                    media: body,
-                    hash,
-                    mediaId: newVideo.id,
-                    mediaFileType: extension
-                },
+                data,
                 'video'
             )
 

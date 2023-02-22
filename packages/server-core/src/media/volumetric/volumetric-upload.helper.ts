@@ -8,7 +8,7 @@ import {addGenericAssetToS3AndStaticResources} from "../upload-asset/upload-asse
 import {UserParams} from "../../user/user/user.class";
 import { videoUpload } from '../video/video-upload.helper'
 
-const handleManifest = async(app: Application, params: UserParams, url: string, name="untitled") => {
+const handleManifest = async(app: Application, params: UserParams, url: string, name="untitled", volumetricId: string) => {
     const file = await fetch(url)
     const body = Buffer.from(await file.arrayBuffer())
 
@@ -46,7 +46,7 @@ const handleManifest = async(app: Application, params: UserParams, url: string, 
         })
     }
     else {
-        const key = `static-resources/data/${hash}/${name}`
+        const key = `static-resources/volumetric/${volumetricId}/${name}`
         const dataResource = await addGenericAssetToS3AndStaticResources(app, body, 'application/octet-stream', {
             hash: hash,
             key: `${key}.manifest`,
@@ -58,77 +58,67 @@ const handleManifest = async(app: Application, params: UserParams, url: string, 
     }
 }
 
-const handleDrcs = async(app: Application, params: UserParams, url: string, name="untitled") => {
-    const file = await fetch(url)
-    const extension = url.split('.').pop()
-    const body = Buffer.from(await file.arrayBuffer())
-
-    const hash = createHash('sha3-256').update(body).digest('hex')
-    let existingResource
-    try {
-        existingResource = await app.service('static-resource').Model.findOne({
-            where: {
-                hash
-            }
-        })
-    } catch(err) {}
-    if (existingResource) return existingResource
-    else {
-        const key = `static-resources/volumetric/${hash}/${name}`
-        return addGenericAssetToS3AndStaticResources(app, body, 'application/octet-stream', {
-            hash: hash,
-            key: `${key}.${extension}`,
-            staticResourceType: 'volumetric'
-        })
-    }
-}
-
 export const volumetricUpload = async (app: Application, data, params) => {
     try {
-        const root = data.url.replace(/.drcs$/, '')
+        const root = data.url.replace(/.drcs$/, '').replace(/.mp4$/, '')
         const name = root.split('/').pop()
         const videoUrl = `${root}.mp4`
         const drcsUrl = `${root}.drcs`
         const manifestUrl = `${root}.manifest`
-
         console.log('video, drcs, manifest url', videoUrl, drcsUrl, manifestUrl)
-        const [video, manifest, drcs] = await Promise.all([
-            videoUpload(app, { url: videoUrl, name }, 'volumetric'),
-            handleManifest(app, params, manifestUrl, name),
-            handleDrcs(app, params, drcsUrl, name)
-        ])
+        let volumetricEntry, drcs, video, manifest
 
-        console.log('Got children')
+        const drcsFile = await fetch(drcsUrl)
+        const extension = drcsUrl.split('.').pop()
+        const drcsBody = Buffer.from(await drcsFile.arrayBuffer())
 
-        let existingVolumetric = await app.service('volumetric').Model.findOne({
+        const hash = createHash('sha3-256').update(drcsBody).digest('hex')
+        drcs = await app.service('static-resource').Model.findOne({
             where: {
-                [Op.or]: [
-                    {
-                        drcsStaticResourceId: {
-                            [Op.eq]: drcs.id
-                        }
-                    }
-                ]
+                hash
             }
         })
-        console.log('existingVolumetric', existingVolumetric)
-        if (existingVolumetric) {
-            await app.service('volumetric').patch(existingVolumetric.id, {
-                drcsStaticResourceId: drcs.id,
-                videoId: video.id,
-                manifestId: manifest.id
+        if (!drcs) {
+            volumetricEntry = await app.service('volumetric').create({})
+            const key = `static-resources/volumetric/${volumetricEntry.id}/${name}`
+            drcs = await addGenericAssetToS3AndStaticResources(app, drcsBody, 'application/octet-stream', {
+                hash: hash,
+                key: `${key}.${extension}`,
+                staticResourceType: 'volumetric'
             })
         } else {
-            existingVolumetric = await app.service('volumetric').create({
-                drcsStaticResourceId: drcs.id,
-                videoId: video.id,
-                manifestId: manifest.id
+            volumetricEntry = await app.service('volumetric').Model.findOne({
+                where: {
+                    [Op.or]: [
+                        {
+                            drcsStaticResourceId: {
+                                [Op.eq]: drcs.id
+                            }
+                        }
+                    ]
+                }
+            })
+            if (!volumetricEntry) volumetricEntry = await app.service('volumetric').create({
+                drcsStaticResourceId: drcs.id
             })
         }
 
+
+        console.log('volumetricEntry', volumetricEntry);
+        [video, manifest] = await Promise.all([
+            videoUpload(app, { url: videoUrl, name }, volumetricEntry.id, 'volumetric'),
+            handleManifest(app, params, manifestUrl, name, volumetricEntry.id)
+        ])
+
+        await app.service('volumetric').patch(volumetricEntry.id, {
+            drcsStaticResourceId: drcs.id,
+            videoId: video.id,
+            manifestId: manifest.id
+        })
+
         return app.service('volumetric').Model.findOne({
             where: {
-                id: existingVolumetric.id
+                id: volumetricEntry.id
             },
             include: [
                 {
