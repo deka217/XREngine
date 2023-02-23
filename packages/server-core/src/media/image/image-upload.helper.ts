@@ -15,9 +15,14 @@ import {Application} from "../../../declarations";
 
 export const imageUpload = async (app: Application, data, mediaType = 'image') => {
     try {
+        if (!data.name) {
+            console.log('Grabbing data name', data.url, data.url.split('/'), data.url.split('/').pop(), data.url.split('/').pop().split('.')[0])
+            data.name = data.url.split('/').pop().split('.')[0]
+            console.log('new data name', data.name)
+        }
         const file = await fetch(data.url)
         console.log('file', file, file.status, file.headers)
-        const extension = data.url.split('.').pop()
+        let extension = data.url.split('.').pop()
         const contentType = guessContentType(data.url)
         console.log('contentType', contentType)
         const body = Buffer.from(await file.arrayBuffer())
@@ -51,7 +56,7 @@ export const imageUpload = async (app: Application, data, mediaType = 'image') =
             }
         ]
         if (existingResource) {
-            const image = await app.service('image').Model.findOne({
+            const existingImage = await app.service('image').Model.findOne({
                 where: {
                     [Op.or]: [
                         {
@@ -78,30 +83,58 @@ export const imageUpload = async (app: Application, data, mediaType = 'image') =
                 },
                 include: include
             })
-            console.log('matching image', image)
-            return image
+            console.log('matching image', existingImage)
+            if (existingImage) return existingImage
+            else {
+                const stream = new Readable()
+                stream.push(body)
+                stream.push(null)
+                const imageDimensions = await probe(stream)
+                const newImage = await app.service('image').create({
+                    width: imageDimensions.width,
+                    height: imageDimensions.height
+                })
+                console.log('newImage', newImage)
+                const update = {} as any
+                if (newImage?.id) {
+                    if (extension === 'jpg') extension = 'jpeg'
+                    const staticResourceColumn = `${extension}StaticResourceId`
+                    update[staticResourceColumn] = existingResource.id
+                }
+                try {
+                    console.log('patching with update', update)
+                    await app.service('image').patch(newImage.id, update)
+                    console.log('patched image')
+                } catch (err) {
+                    logger.error('error updating image with resources')
+                    logger.error(err)
+                    throw err
+                }
+                return app.service('image').Model.findOne({
+                    where: {
+                        id: newImage.id
+                    },
+                    include
+                })
+            }
         } else {
             const stream = new Readable()
             stream.push(body)
             stream.push(null)
-            console.log('readStream', stream)
             const imageDimensions = await probe(stream)
-            console.log('image duration', imageDimensions)
             const newImage = await app.service('image').create({
                 width: imageDimensions.width,
                 height: imageDimensions.height
             })
-            console.log('new image', newImage)
-            console.log('data', data)
-            const args = Object.assign({})
+            const args = {}
             args.imageId = newImage.id
             args.imageFileType = extension
-            console.log('calling uploadImageStaticResource')
             const [image, thumbnail] = await uploadMediaStaticResource(
                 app,
                 {
                     media: body,
                     hash,
+                    fileName: data.name,
                     mediaId: newImage.id,
                     mediaFileType: extension
                 },
@@ -111,6 +144,7 @@ export const imageUpload = async (app: Application, data, mediaType = 'image') =
             console.log('uploaded image and thumbnail resources', image, thumbnail)
             const update = {} as any
             if (image?.id) {
+                if (extension === 'jpg') extension = 'jpeg'
                 const staticResourceColumn = `${extension}StaticResourceId`
                 update[staticResourceColumn] = image.id
             }
@@ -122,10 +156,11 @@ export const imageUpload = async (app: Application, data, mediaType = 'image') =
                 logger.error(err)
                 throw err
             }
-            return app.service('image').get(newImage.id, {
-                sequelize: {
-                    include: include
-                }
+            return app.service('image').Model.findOne({
+                where: {
+                    id: newImage.id
+                },
+                include
             })
         }
     } catch (err) {

@@ -20,12 +20,14 @@ export const ImageNodeEditor: EditorComponentType = (props) => {
   const entity = props.node.entity
   const imageComponent = useComponent(entity, ImageComponent)
   const errors = getEntityErrors(props.node.entity, ImageComponent)
+  console.log('errors', errors)
 
   const updateResources = async (path: string) => {
     const media = await StaticResourceService.uploadImage(path)
     updateProperty(ImageComponent, 'resource')(media)
   }
 
+  console.log('ImageComponent', ImageComponent)
   return (
     <NodeEditor
       {...props}
@@ -33,7 +35,13 @@ export const ImageNodeEditor: EditorComponentType = (props) => {
       description={t('editor:properties.image.description')}
     >
       <InputGroup name="Image Url" label={t('editor:properties.image.lbl-imgURL')}>
-        <ImageInput value={imageComponent.source.value} onChange={updateResources} />
+        <ImageInput value={
+          imageComponent.resource?.jpegStaticResource?.LOD0_url.value ||
+          imageComponent.resource?.ktx2StaticResource?.LOD0_url.value ||
+          imageComponent.resource?.pngStaticResource?.LOD0_url.value ||
+          imageComponent.resource?.gifStaticResource?.LOD0_url.value ||
+          imageComponent.source.value
+        } onChange={updateResources} />
       </InputGroup>
       {errors && <div style={{ marginTop: 2, color: '#FF8C00' }}>{t('editor:properties.image.error-url')}</div>}
       <ImageSourceProperties node={props.node} multiEdit={props.multiEdit} />

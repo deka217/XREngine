@@ -77,13 +77,7 @@ export const ImageComponent = defineComponent({
     if (typeof json['imageSource'] === 'string' && json['imageSource'] !== component.source.value)
       component.source.set(json['imageSource'])
     //
-    if (typeof json.resource === 'object') component.source.set(
-        json.resource?.pngStaticResource?.LOD0_url ||
-        json.resource?.gifStaticResource?.LOD0_url ||
-        json.resource?.jpegStaticResource?.LOD0_url ||
-        json.resource?.ktx2StaticResource?.LOD0_url ||
-        json.source || ''
-    )
+    if (typeof json.resource === 'object') component.resource.set(json.resource || { source: json.source })
     if (typeof json.alphaMode === 'string' && json.alphaMode !== component.alphaMode.value)
       component.alphaMode.set(json.alphaMode)
     if (typeof json.alphaCutoff === 'number' && json.alphaCutoff !== component.alphaCutoff.value)
@@ -144,13 +138,14 @@ export function ImageReactor({ root }: EntityReactorProps) {
 
   useEffect(
     function updateTextureSource() {
-        console.log('updateTextureSource', image, image.source.value)
-      const source = image.jp.value
-
-        // resource.jpegStaticResource?.LOD0_url ||
-        // resource.gifStaticResource?.LOD0_url ||
-        // resource.pngStaticResource?.LOD0_url ||
-        // resource.ktx2StaticResource?.LOD0_url ||
+        console.log('image', image)
+      const source =
+        image.resource?.jpegStaticResource?.LOD0_url?.value ||
+        image.resource?.gifStaticResource?.LOD0_url?.value ||
+        image.resource?.pngStaticResource?.LOD0_url?.value ||
+        image.resource?.ktx2StaticResource?.LOD0_url?.value ||
+        image.resource?.source?.value || ''
+        console.log('SOURCE', source)
       if (!source) {
         return addError(entity, ImageComponent, `MISSING_TEXTURE_SOURCE`)
       }
@@ -172,7 +167,7 @@ export function ImageReactor({ root }: EntityReactorProps) {
         // TODO: abort load request, pending https://github.com/mrdoob/three.js/pull/23070
       }
     },
-    [image.source]
+    [image.resource]
   )
 
   useEffect(

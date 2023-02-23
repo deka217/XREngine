@@ -268,7 +268,7 @@ export function MediaReactor({ root }: EntityReactorProps) {
     function updateTrackMetadata() {
       clearErrors(entity, MediaComponent)
 
-      console.log('media resources', media.resources.value)
+      console.log('media resources', media.resources)
       const paths = media.resources.value.map((resource) =>
           getResourceURL(resource)
       )

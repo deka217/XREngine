@@ -85,12 +85,12 @@ export const useLocationSpawnAvatar = (spectate = false) => {
       ? getSpawnPoint(spawnPoint, Engine.instance.userId)
       : getRandomSpawnPoint(Engine.instance.userId)
 
-    if (avatarDetails.modelResource?.LOD0_url)
+    if (avatarDetails.modelResource?.LOD0_url || avatarDetails.modelResource?.src)
       spawnLocalAvatarInWorld({
         avatarSpawnPose,
         avatarDetail: {
-          avatarURL: avatarDetails.modelResource?.LOD0_url!,
-          thumbnailURL: avatarDetails.thumbnailResource?.LOD0_url!
+          avatarURL: avatarDetails.modelResource.LOD0_url || avatarDetails.modelResource.src,
+          thumbnailURL: avatarDetails.thumbnailResource.LOD0_url || avatarDetails.modelResource.src
         },
         name: user.name.value
       })

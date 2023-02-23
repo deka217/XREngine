@@ -13,6 +13,11 @@ import {Application} from "../../../declarations";
 
 export const audioUpload = async (app: Application, data, params) => {
     try {
+        if (!data.name) {
+            console.log('Grabbing data name', data.url, data.url.split('/'), data.url.split('/').pop(), data.url.split('/').pop().split('.')[0])
+            data.name = data.url.split('/').pop().split('.')[0]
+            console.log('new data name', data.name)
+        }
         const file = await fetch(data.url)
         console.log('file', file, file.status, file.headers)
         const extension = data.url.split('.').pop()
@@ -31,8 +36,23 @@ export const audioUpload = async (app: Application, data, params) => {
             })
         } catch(err) {}
 
+        const include = [
+            {
+                model: app.service('static-resource').Model,
+                as: 'oggStaticResource'
+            },
+            {
+                model: app.service('static-resource').Model,
+                as: 'mp3StaticResource',
+            },
+            {
+                model: app.service('static-resource').Model,
+                as: 'mpegStaticResource',
+            }
+        ]
+
         if (existingResource) {
-            const audio = await app.service('audio').Model.findOne({
+            const existingAudio = await app.service('audio').Model.findOne({
                 where: {
                     [Op.or]: [
                         {
@@ -52,23 +72,46 @@ export const audioUpload = async (app: Application, data, params) => {
                         }
                     ]
                 },
-                include: [
-                    {
-                        model: app.service('static-resource').Model,
-                        as: 'oggStaticResource'
-                    },
-                    {
-                        model: app.service('static-resource').Model,
-                        as: 'mp3StaticResource',
-                    },
-                    {
-                        model: app.service('static-resource').Model,
-                        as: 'mpegStaticResource',
-                    }
-                ]
+                include
             })
-            console.log('matching audio', audio)
-            return audio
+            console.log('matching audio', existingAudio)
+
+            if (existingAudio) return existingAudio
+            else {
+                let audioDuration
+                if (extension === 'mp3') {
+                    audioDuration = await new Promise((resolve, reject) => mp3Duration(body, (err, duration) => {
+                        if (err) reject(err)
+                        resolve(audioDuration = duration * 1000)
+                    }))
+                } else {
+                    const stream = new Readable()
+                    stream.push(body)
+                    stream.push(null)
+                    audioDuration = await getAudioDurationInSeconds(stream)
+                }
+                const newAudio = await app.service('audio').create({
+                    duration: audioDuration
+                })
+                const update = {}
+                if (existingResource?.id) {
+                    const staticResourceColumn = `${extension}StaticResourceId`
+                    update[staticResourceColumn] = existingResource.id
+                }
+                 try {
+                    await app.service('audio').patch(newAudio.id, update)
+                 } catch(err) {
+                     logger.error('error updating audio with resources')
+                     logger.error(err)
+                     throw err
+                 }
+                return app.service('audio').Model.findOne({
+                    where: {
+                        id: newAudio.id
+                    },
+                    include
+                })
+            }
         } else {
             let audioDuration
             if (extension === 'mp3') {
@@ -90,7 +133,7 @@ export const audioUpload = async (app: Application, data, params) => {
             })
             console.log('new audio', newAudio)
             console.log('data')
-            const args = Object.assign({})
+            const args = {}
             args.audioId = newAudio.id
             args.audioFileType = extension
             console.log('calling uploadAudioStaticResource')
@@ -99,6 +142,7 @@ export const audioUpload = async (app: Application, data, params) => {
                 {
                     media: body,
                     hash,
+                    fileName: data.name,
                     mediaId: newAudio.id,
                     mediaFileType: extension
                 },
@@ -119,23 +163,11 @@ export const audioUpload = async (app: Application, data, params) => {
                 logger.error(err)
                 throw err
             }
-            return app.service('audio').get(newAudio.id, {
-                sequelize: {
-                    include: [
-                        {
-                            model: app.service('static-resource').Model,
-                            as: 'oggStaticResource'
-                        },
-                        {
-                            model: app.service('static-resource').Model,
-                            as: 'mp3StaticResource',
-                        },
-                        {
-                            model: app.service('static-resource').Model,
-                            as: 'mpegStaticResource',
-                        }
-                    ]
-                }
+            return app.service('audio').findOne({
+                where: {
+                    id: newAudio.id
+                },
+                include
             })
         }
     } catch (err) {

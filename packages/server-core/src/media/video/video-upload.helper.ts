@@ -7,14 +7,28 @@ import { Op } from 'sequelize'
 import logger from "../../ServerLogger";
 import {uploadMediaStaticResource} from "../static-resource/static-resource-helper";
 import {Application} from "../../../declarations";
-import {VolumetricInterface} from "@xrengine/common/src/interfaces/VolumetricInterface";
 
 export const videoUpload = async (app: Application, data, parentId?: string, parentType?: string) => {
     try {
         console.log('videoUpload', data, parentId, parentType)
+        if (parentType === 'volumetric') {
+            const fileHead = await fetch(data.url, {method: 'HEAD'})
+            if (!/^[23]/.test(fileHead.status)) {
+                let parts = data.url.split('.')
+                if (parts.length === 2)
+                    parts.splice(1, 0, 'LOD0')
+                // else if (parts.length === 3 && /LOD[0-9]?[0-9]/.test(parts[1]))
+                //     parts[1] = 'LOD0'
+                data.url = parts.join('.')
+            }
+        }
+        if (!data.name) {
+            console.log('Grabbing data name', data.url, data.url.split('/'), data.url.split('/').pop(), data.url.split('/').pop().split('.')[0])
+            data.name = data.url.split('/').pop().split('.')[0]
+            console.log('new data name', data.name)
+        }
         const file = await fetch(data.url)
         const extension = data.url.split('.').pop()
-        const name = data.name
         const body = Buffer.from(await file.arrayBuffer())
         const hash = createHash('sha3-256').update(body).digest('hex')
         let existingResource
@@ -25,7 +39,6 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
                 }
             })
         } catch(err) {}
-        console.log('existingResource', existingResource)
         const include = [
             {
                 model: app.service('static-resource').Model,
@@ -58,7 +71,6 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
             console.log('existingVideo', existingVideo)
             if (existingVideo) return existingVideo
             else {
-                console.log('making new video entry')
                 const stream = new Readable()
                 stream.push(body)
                 stream.push(null)
@@ -67,7 +79,6 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
                     duration: videoDuration
                 })
 
-                console.log('newVideo', newVideo)
                 const update = {} as any
                 if (existingResource?.id) {
                     const staticResourceColumn = `${extension}StaticResourceId`
@@ -80,11 +91,11 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
                     logger.error(err)
                     throw err
                 }
-                console.log('patched video with things', newVideo)
-                return app.service('video').get(newVideo.id, {
-                    sequelize: {
-                        include: include
-                    }
+                return app.service('video').Model.findOne({
+                    where: {
+                        id: newVideo.id
+                    },
+                    include
                 })
             }
         } else {
@@ -98,7 +109,7 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
             const data = {
                 media: body,
                 hash,
-                fileName: name,
+                fileName: data.name,
                 mediaId: newVideo.id,
                 mediaFileType: extension
             } as any
@@ -125,11 +136,14 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
                 logger.error(err)
                 throw err
             }
-            return app.service('video').get(newVideo.id, {
-                sequelize: {
-                    include: include
-                }
+            const returned = await app.service('video').Model.findOne({
+                where: {
+                    id: newVideo.id
+                },
+                include
             })
+            console.log('returning new video', returned)
+            return returned
         }
     } catch (err) {
         logger.error('video upload error')
