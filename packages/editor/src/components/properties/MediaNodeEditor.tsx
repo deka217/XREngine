@@ -20,6 +20,7 @@ import InputGroup from '../inputs/InputGroup'
 import SelectInput from '../inputs/SelectInput'
 import NodeEditor from './NodeEditor'
 import { EditorComponentType, updateProperty } from './Util'
+import {addError} from "@xrengine/engine/src/scene/functions/ErrorFunctions";
 
 const PlayModeOptions = [
   {
@@ -51,24 +52,30 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
   }
 
   const updateResources = async (e) => {
-    const resources = await Promise.all(e.map(async (path) => {
+    const resources = await Promise.all(e.map(async (path, index) => {
+      console.log('path', path, 'index', index)
       const extension = `.${path.split('.').pop()}`
       let existingMedia
-      if (AudioFileTypes.indexOf(extension) > -1)
-        existingMedia = await StaticResourceService.uploadAudio(path)
-      else if (ImageFileTypes.indexOf(extension) > -1)
-        existingMedia = await StaticResourceService.uploadImage(path)
-      else if (VideoFileTypes.indexOf(extension) > -1)
-        existingMedia = await StaticResourceService.uploadVideo(path)
-      else if (VolumetricFileTypes.indexOf(extension) > -1)
-        existingMedia = await StaticResourceService.uploadVolumetric(path)
-      return existingMedia
+      try {
+        if (AudioFileTypes.indexOf(extension) > -1)
+          existingMedia = await StaticResourceService.uploadAudio(path)
+        else if (VideoFileTypes.indexOf(extension) > -1)
+          existingMedia = await StaticResourceService.uploadVideo(path)
+        else if (VolumetricFileTypes.indexOf(extension) > -1)
+          existingMedia = await StaticResourceService.uploadVolumetric(path)
+        return existingMedia
+      } catch(err) {
+        console.log('Error getting path', path)
+        addError(props.node.entity, MediaComponent, 'INVALID_URL', path)
+        return {}
+      }
     }))
     console.log('resources', resources)
 
     updateProperty(MediaComponent, 'resources')(resources)
   }
 
+  console.log('media errors', errors)
   return (
     <NodeEditor
       {...props}
@@ -77,7 +84,7 @@ export const MediaNodeEditor: EditorComponentType = (props) => {
     >
       {errors ? (
         Object.entries(errors).map(([err, message]) => {
-          return <div style={{ marginTop: 2, color: '#FF8C00' }}>{'Error: ' + message}</div>
+          return <div style={{ marginTop: 2, color: '#FF8C00' }}>{'Error: ' + err + '--' + message}</div>
         })
       ) : (
         <></>

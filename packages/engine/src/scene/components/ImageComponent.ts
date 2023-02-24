@@ -92,7 +92,7 @@ export const ImageComponent = defineComponent({
     component.mesh.value.removeFromParent()
   },
 
-  errors: ['MISSING_TEXTURE_SOURCE', 'UNSUPPORTED_ASSET_CLASS', 'LOADING_ERROR'],
+  errors: ['MISSING_TEXTURE_SOURCE', 'UNSUPPORTED_ASSET_CLASS', 'LOADING_ERROR', 'INVALID_URL'],
 
   reactor: ImageReactor
 })

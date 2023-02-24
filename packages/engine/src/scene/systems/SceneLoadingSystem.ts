@@ -186,10 +186,10 @@ export const updateSceneEntitiesFromJSON = (parent: string, world = Engine.insta
 
 /**
  * Updates the scene based on serialized json data
- * @param oldSceneData
  * @param sceneData
  */
 export const updateSceneFromJSON = async (sceneData: SceneData) => {
+  console.log('updateSceneFromJSON', sceneData)
   const world = Engine.instance.currentWorld
   getState(EngineState).sceneLoading.set(true)
 
@@ -235,6 +235,7 @@ export const updateSceneFromJSON = async (sceneData: SceneData) => {
 
   world.sceneJson = sceneData.scene
 
+  console.log('new world.sceneJSON', world.sceneJson)
   if (sceneData.scene.metadata) {
     for (const [key, val] of Object.entries(sceneData.scene.metadata)) {
       if (!world.sceneMetadataRegistry[key]) continue

@@ -241,7 +241,7 @@ export const MediaComponent = defineComponent({
 
   reactor: MediaReactor,
 
-  errors: ['LOADING_ERROR', 'UNSUPPORTED_ASSET_CLASS']
+  errors: ['LOADING_ERROR', 'UNSUPPORTED_ASSET_CLASS', 'INVALID_URL']
 })
 
 export function MediaReactor({ root }: EntityReactorProps) {
@@ -336,7 +336,6 @@ export function MediaReactor({ root }: EntityReactorProps) {
         return
       }
 
-      console.log('RESOURCE', resource.manifest, resource.manifest?.staticResource, resource.manifest?.staticResource?.LOD0_url)
       if (!mediaElement || mediaElement.element.nodeName.toLowerCase() !== assetClass) {
         setComponent(entity, MediaElementComponent, {
           element: document.createElement(assetClass) as HTMLMediaElement,

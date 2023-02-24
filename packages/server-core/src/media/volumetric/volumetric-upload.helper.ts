@@ -9,20 +9,20 @@ import {UserParams} from "../../user/user/user.class";
 import { videoUpload } from '../video/video-upload.helper'
 
 const handleManifest = async(app: Application, params: UserParams, url: string, name="untitled", volumetricId: string) => {
-    const file = await fetch(url)
-    const body = Buffer.from(await file.arrayBuffer())
+    const drcsFileHead = await fetch(url, {method: 'HEAD'})
+    if (!/^[23]/.test(drcsFileHead.status.toString())) throw new Error('Invalid URL')
+    const contentLength = drcsFileHead.headers['content-length'] || drcsFileHead.headers.get('content-length')
+    if (!name) name = url.split('/').pop().split('.')[0]
+    const hash = createHash('sha3-256').update(contentLength).update(name).digest('hex')
+    let existingData
 
-    const hash = createHash('sha3-256').update(body).digest('hex')
-    let existingResource
-    try {
-        existingResource = await app.service('static-resource').Model.findOne({
-            where: {
-                hash
-            }
-        })
-    } catch(err) {}
+    let existingResource = await app.service('static-resource').Model.findOne({
+        where: {
+            hash
+        }
+    })
     if (existingResource) {
-        const data = await app.service('data').Model.findOne({
+        existingData = await app.service('data').Model.findOne({
             where: {
                 [Op.or]: [
                     {
@@ -39,21 +39,21 @@ const handleManifest = async(app: Application, params: UserParams, url: string, 
                 }
             ]
         })
-        console.log('matching data', data)
-        if (data) return data
-        else return app.service('data').create({
-            staticResourceId: existingResource.id
-        })
     }
+    if (existingResource && existingData) return existingData
     else {
-        const key = `static-resources/volumetric/${volumetricId}/${name}`
-        const dataResource = await addGenericAssetToS3AndStaticResources(app, body, 'application/octet-stream', {
-            hash: hash,
-            key: `${key}.manifest`,
-            staticResourceType: 'data'
-        })
+        if (!existingResource) {
+            const file = await fetch(url)
+            const body = Buffer.from(await file.arrayBuffer())
+            const key = `static-resources/volumetric/${volumetricId}/${name}`
+            existingResource = await addGenericAssetToS3AndStaticResources(app, body, 'application/octet-stream', {
+                hash: hash,
+                key: `${key}.manifest`,
+                staticResourceType: 'data'
+            })
+        }
         return app.service('data').create({
-            staticResourceId: dataResource.id
+            staticResourceId: existingResource.id
         })
     }
 }
@@ -65,20 +65,23 @@ export const volumetricUpload = async (app: Application, data, params) => {
         const videoUrl = `${root}.mp4`
         const drcsUrl = `${root}.drcs`
         const manifestUrl = `${root}.manifest`
-        console.log('video, drcs, manifest url', videoUrl, drcsUrl, manifestUrl)
-        let volumetricEntry, drcs, video, manifest
+        let volumetricEntry, video, manifest
 
-        const drcsFile = await fetch(drcsUrl)
+        const drcsFileHead = await fetch(drcsUrl, {method: 'HEAD'})
+        if (!/^[23]/.test(drcsFileHead.status.toString())) throw new Error('Invalid URL')
+        const contentLength = drcsFileHead.headers['content-length'] || drcsFileHead.headers.get('content-length')
+        if (!data.name) data.name = data.url.split('/').pop().split('.')[0]
+        const hash = createHash('sha3-256').update(contentLength).update(data.name).digest('hex')
         const extension = drcsUrl.split('.').pop()
-        const drcsBody = Buffer.from(await drcsFile.arrayBuffer())
 
-        const hash = createHash('sha3-256').update(drcsBody).digest('hex')
-        drcs = await app.service('static-resource').Model.findOne({
+        let drcs = await app.service('static-resource').Model.findOne({
             where: {
                 hash
             }
         })
         if (!drcs) {
+            const drcsFile = await fetch(drcsUrl)
+            const drcsBody = Buffer.from(await drcsFile.arrayBuffer())
             volumetricEntry = await app.service('volumetric').create({})
             const key = `static-resources/volumetric/${volumetricEntry.id}/${name}`
             drcs = await addGenericAssetToS3AndStaticResources(app, drcsBody, 'application/octet-stream', {
@@ -103,8 +106,6 @@ export const volumetricUpload = async (app: Application, data, params) => {
             })
         }
 
-
-        console.log('volumetricEntry', volumetricEntry);
         [video, manifest] = await Promise.all([
             videoUpload(app, { url: videoUrl, name }, volumetricEntry.id, 'volumetric'),
             handleManifest(app, params, manifestUrl, name, volumetricEntry.id)

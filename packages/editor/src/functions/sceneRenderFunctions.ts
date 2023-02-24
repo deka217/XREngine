@@ -48,9 +48,11 @@ export async function initializeScene(sceneData: SceneData): Promise<Error[] | v
 
   // getting scene data
   await updateSceneFromJSON(sceneData)
+  console.log('Updated scene from JSON')
   await new Promise((resolve) => matchActionOnce(EngineActions.sceneLoaded.matches, resolve))
 
   dispatchAction(EditorHistoryAction.clearHistory({}))
+  console.log('Cleared history on initialize')
 
   const camera = world.camera
   const transform = getComponent(world.cameraEntity, TransformComponent)

@@ -10,35 +10,29 @@ import {Application} from "../../../declarations";
 
 export const videoUpload = async (app: Application, data, parentId?: string, parentType?: string) => {
     try {
-        console.log('videoUpload', data, parentId, parentType)
+        let fileHead = await fetch(data.url, {method: 'HEAD'})
         if (parentType === 'volumetric') {
-            const fileHead = await fetch(data.url, {method: 'HEAD'})
-            if (!/^[23]/.test(fileHead.status)) {
+            if (!/^[23]/.test(fileHead.status.toString())) {
                 let parts = data.url.split('.')
-                if (parts.length === 2)
-                    parts.splice(1, 0, 'LOD0')
+                if (parts.length === 2) parts.splice(1, 0, 'LOD0')
                 // else if (parts.length === 3 && /LOD[0-9]?[0-9]/.test(parts[1]))
                 //     parts[1] = 'LOD0'
                 data.url = parts.join('.')
+                fileHead = await fetch(data.url, {method: 'HEAD'})
             }
         }
-        if (!data.name) {
-            console.log('Grabbing data name', data.url, data.url.split('/'), data.url.split('/').pop(), data.url.split('/').pop().split('.')[0])
-            data.name = data.url.split('/').pop().split('.')[0]
-            console.log('new data name', data.name)
-        }
-        const file = await fetch(data.url)
+        if (!/^[23]/.test(fileHead.status.toString())) throw new Error('Invalid URL')
+        const contentLength = fileHead.headers['content-length'] || fileHead.headers.get('content-length')
+        if (!data.name) data.name = data.url.split('/').pop().split('.')[0]
+        const hash = createHash('sha3-256').update(contentLength).update(data.name).digest('hex')
         const extension = data.url.split('.').pop()
-        const body = Buffer.from(await file.arrayBuffer())
-        const hash = createHash('sha3-256').update(body).digest('hex')
-        let existingResource
-        try {
-            existingResource = await app.service('static-resource').Model.findOne({
-                where: {
-                    hash
-                }
-            })
-        } catch(err) {}
+        let existingVideo, thumbnail
+        let existingResource = await app.service('static-resource').Model.findOne({
+            where: {
+                hash
+            }
+        })
+
         const include = [
             {
                 model: app.service('static-resource').Model,
@@ -49,8 +43,9 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
                 as: 'mp4StaticResource',
             }
         ]
+
         if (existingResource) {
-            const existingVideo = await app.service('video').Model.findOne({
+            existingVideo = await app.service('video').Model.findOne({
                 where: {
                     [Op.or]: [
                         {
@@ -67,38 +62,11 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
                 },
                 include
             })
-
-            console.log('existingVideo', existingVideo)
-            if (existingVideo) return existingVideo
-            else {
-                const stream = new Readable()
-                stream.push(body)
-                stream.push(null)
-                const videoDuration = await getVideoDurationInSeconds(stream) * 1000
-                const newVideo = await app.service('video').create({
-                    duration: videoDuration
-                })
-
-                const update = {} as any
-                if (existingResource?.id) {
-                    const staticResourceColumn = `${extension}StaticResourceId`
-                    update[staticResourceColumn] = existingResource.id
-                }
-                try {
-                    await app.service('video').patch(newVideo.id, update)
-                } catch (err) {
-                    logger.error('error updating video with resources')
-                    logger.error(err)
-                    throw err
-                }
-                return app.service('video').Model.findOne({
-                    where: {
-                        id: newVideo.id
-                    },
-                    include
-                })
-            }
-        } else {
+        }
+        if (existingResource && existingVideo) return existingVideo
+        else {
+            const file = await fetch(data.url)
+            const body = Buffer.from(await file.arrayBuffer())
             const stream = new Readable()
             stream.push(body)
             stream.push(null)
@@ -106,27 +74,28 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
             const newVideo = await app.service('video').create({
                 duration: videoDuration
             })
-            const data = {
-                media: body,
-                hash,
-                fileName: data.name,
-                mediaId: newVideo.id,
-                mediaFileType: extension
-            } as any
-            if (parentId)
-                data.parentId = parentId
-            if (parentType)
-                data.parentType = parentType
-            const [video, thumbnail] = await uploadMediaStaticResource(
-                app,
-                data,
-                'video'
-            )
-
+            if (!existingResource) {
+                const uploadData = {
+                    media: body,
+                    hash,
+                    fileName: data.name,
+                    mediaId: newVideo.id,
+                    mediaFileType: extension
+                } as any
+                if (parentId)
+                    uploadData.parentId = parentId
+                if (parentType)
+                    uploadData.parentType = parentType;
+                [existingResource, thumbnail] = await uploadMediaStaticResource(
+                    app,
+                    uploadData,
+                    'video'
+                )
+            }
             const update = {} as any
-            if (video?.id) {
+            if (existingResource?.id) {
                 const staticResourceColumn = `${extension}StaticResourceId`
-                update[staticResourceColumn] = video.id
+                update[staticResourceColumn] = existingResource.id
             }
             if (thumbnail?.id) update.thumbnail = thumbnail.id
             try {
@@ -136,14 +105,12 @@ export const videoUpload = async (app: Application, data, parentId?: string, par
                 logger.error(err)
                 throw err
             }
-            const returned = await app.service('video').Model.findOne({
+            return app.service('video').Model.findOne({
                 where: {
                     id: newVideo.id
                 },
                 include
             })
-            console.log('returning new video', returned)
-            return returned
         }
     } catch (err) {
         logger.error('video upload error')

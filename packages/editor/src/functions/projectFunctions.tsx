@@ -30,12 +30,15 @@ export const getProjects = async (): Promise<ProjectInterface[]> => {
  * Loads scene from provided project file.
  */
 export async function loadProjectScene(projectData: SceneData) {
+  console.log('projectData', projectData)
   EditorControlFunctions.replaceSelection([])
 
   disposeProject()
+  console.log('Disposed of project')
 
   const errors = await initializeScene(projectData)
 
+  console.log('initialized scene')
   dispatchAction(EditorAction.projectLoaded({ loaded: true }))
   dispatchAction(SelectionAction.changedSceneGraph({}))
 

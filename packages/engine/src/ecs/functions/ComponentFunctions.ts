@@ -44,7 +44,7 @@ export interface ComponentPartial<
     entity: Entity,
     world: World
   ) => ComponentType & OnInitValidateNotState<ComponentType>
-  toJSON?: (entity: Entity, component: State<ComponentType>) => JSON
+  toJSON?: (entity: Entity, component: State<ComponentType>, isExport?: boolean) => JSON
   onSet?: (entity: Entity, component: State<ComponentType>, json?: SetJSON) => void
   onRemove?: (entity: Entity, component: State<ComponentType>) => void | Promise<void>
   reactor?: React.FC<EntityReactorProps>
@@ -65,7 +65,7 @@ export interface Component<
     entity: Entity,
     world: World
   ) => ComponentType & OnInitValidateNotState<ComponentType>
-  toJSON: (entity: Entity, component: State<ComponentType>) => JSON
+  toJSON: (entity: Entity, component: State<ComponentType>, isExport?: boolean) => JSON
   onSet: (entity: Entity, component: State<ComponentType>, json?: SetJSON) => void
   onRemove: (entity: Entity, component: State<ComponentType>) => void
   reactor?: HookableFunction<React.FC<EntityReactorProps>>
@@ -351,9 +351,9 @@ export const removeAllComponents = (entity: Entity, world = Engine.instance.curr
   }
 }
 
-export const serializeComponent = <C extends Component<any, any, any>>(entity: Entity, Component: C) => {
+export const serializeComponent = <C extends Component<any, any, any>>(entity: Entity, Component: C, isExport=false) => {
   const component = getComponentState(entity, Component)
-  return Component.toJSON(entity, component) as ReturnType<C['toJSON']>
+  return Component.toJSON(entity, component, isExport) as ReturnType<C['toJSON']>
 }
 
 export function defineQuery(components: (bitECS.Component | bitECS.QueryModifier)[]) {

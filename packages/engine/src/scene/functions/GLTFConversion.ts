@@ -126,9 +126,8 @@ const serializeECS = (roots: Object3DWithEntity[], world: World = Engine.instanc
 }
 
 export const sceneToGLTF = (roots: Object3DWithEntity[]) => {
-  const eNodeMap = Engine.instance.currentWorld.entityTree.entityNodeMap
   for (const root of roots) {
-    const node = eNodeMap.get(root.entity)!
+    console.log('root', root)
     root.traverse((node: Object3DWithEntity) => {
       if (node.entity) {
         prepareObjectForGLTFExport(node)
@@ -198,6 +197,8 @@ export const prepareObjectForGLTFExport = (obj3d: Object3DWithEntity, world = En
 
   const { entity } = obj3d
 
+  console.log('entity', entity)
+
   const components = getAllComponents(entity)
 
   for (const component of components) {
@@ -206,7 +207,7 @@ export const prepareObjectForGLTFExport = (obj3d: Object3DWithEntity, world = En
       const loadingRegister = world.sceneLoadingRegistry.get(sceneComponentID)
       if (loadingRegister) {
         const serialize = world.sceneLoadingRegistry.get(sceneComponentID)?.serialize
-        const data = serialize ? serialize(entity) : serializeComponent(entity, component)
+        const data = serialize ? serialize(entity) : serializeComponent(entity, component, true)
         if (data)
           addComponentDataToGLTFExtension(obj3d, {
             name: sceneComponentID,
