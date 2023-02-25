@@ -8,7 +8,7 @@ import {addGenericAssetToS3AndStaticResources} from "../upload-asset/upload-asse
 import {UserParams} from "../../user/user/user.class";
 import { videoUpload } from '../video/video-upload.helper'
 
-const handleManifest = async(app: Application, params: UserParams, url: string, name="untitled", volumetricId: string) => {
+const handleManifest = async(app: Application, url: string, name="untitled", volumetricId: string) => {
     const drcsFileHead = await fetch(url, {method: 'HEAD'})
     if (!/^[23]/.test(drcsFileHead.status.toString())) throw new Error('Invalid URL')
     const contentLength = drcsFileHead.headers['content-length'] || drcsFileHead.headers.get('content-length')
@@ -58,8 +58,9 @@ const handleManifest = async(app: Application, params: UserParams, url: string, 
     }
 }
 
-export const volumetricUpload = async (app: Application, data, params) => {
+export const volumetricUpload = async (app: Application, data) => {
     try {
+        console.log('volumetric upload data', data)
         const root = data.url.replace(/.drcs$/, '').replace(/.mp4$/, '')
         const name = root.split('/').pop()
         const videoUrl = `${root}.mp4`
@@ -108,7 +109,7 @@ export const volumetricUpload = async (app: Application, data, params) => {
 
         [video, manifest] = await Promise.all([
             videoUpload(app, { url: videoUrl, name }, volumetricEntry.id, 'volumetric'),
-            handleManifest(app, params, manifestUrl, name, volumetricEntry.id)
+            handleManifest(app, manifestUrl, name, volumetricEntry.id)
         ])
 
         await app.service('volumetric').patch(volumetricEntry.id, {

@@ -2,7 +2,6 @@
 import { getAudioDurationInSeconds } from 'get-audio-duration'
 import mp3Duration from 'mp3-duration'
 import fetch from "node-fetch";
-import {guessContentType} from "@xrengine/common/src/utils/guessContentType";
 import {Readable} from "stream";
 import {createHash} from "crypto";
 import { Op } from 'sequelize'
@@ -10,12 +9,20 @@ import { Op } from 'sequelize'
 import logger from "../../ServerLogger";
 import { uploadMediaStaticResource } from '../static-resource/static-resource-helper'
 import {Application} from "../../../declarations";
+import fs from "fs";
 
-export const audioUpload = async (app: Application, data, params) => {
+export const audioUpload = async (app: Application, data) => {
     try {
-        let fileHead = await fetch(data.url, {method: 'HEAD'})
-        if (!/^[23]/.test(fileHead.status.toString())) throw new Error('Invalid URL')
-        const contentLength = fileHead.headers['content-length'] || fileHead.headers.get('content-length')
+        let fileHead, contentLength
+        if (/http(s)?:\/\//.test(data.url)) {
+            fileHead = await fetch(data.url, {method: 'HEAD'})
+            if (!/^[23]/.test(fileHead.status.toString())) throw new Error('Invalid URL')
+            contentLength = fileHead.headers['content-length'] || fileHead.headers?.get('content-length')
+        }
+        else {
+            fileHead = await fs.statSync(data.url)
+            contentLength = fileHead.size.toString()
+        }
         if (!data.name) data.name = data.url.split('/').pop().split('.')[0]
         const hash = createHash('sha3-256').update(contentLength).update(data.name).digest('hex')
         const extension = data.url.split('.').pop()
@@ -68,8 +75,15 @@ export const audioUpload = async (app: Application, data, params) => {
 
         if (existingResource && existingAudio) return existingAudio
         else {
-            const file = await fetch(data.url)
-            const body = Buffer.from(await file.arrayBuffer())
+            let file, body
+            if (/http(s)?:\/\//.test(data.url)) {
+                file = await fetch(data.url)
+                body = Buffer.from(await file.arrayBuffer())
+            }
+            else {
+                body = file = fs.readFileSync(data.url)
+                            }
+            console.log('file', file)
             let audioDuration
             if (extension === 'mp3') {
                 audioDuration = await new Promise((resolve, reject) => mp3Duration(body, (err, duration) => {

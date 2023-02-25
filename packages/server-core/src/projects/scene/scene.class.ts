@@ -1,9 +1,7 @@
 import { NullableId, Params, ServiceMethods } from '@feathersjs/feathers'
 import appRootPath from 'app-root-path'
 import fs from 'fs'
-import fetch from 'node-fetch'
 import path from 'path'
-import { Op } from 'sequelize'
 
 import { isDev } from '@xrengine/common/src/config'
 import { SceneData, SceneJson } from '@xrengine/common/src/interfaces/SceneInterface'
@@ -15,18 +13,8 @@ import { getCachedURL } from '../../media/storageprovider/getCachedURL'
 import { getStorageProvider } from '../../media/storageprovider/storageprovider'
 import logger from '../../ServerLogger'
 import { cleanString } from '../../util/cleanString'
-import {
-  uploadAnimation,
-  uploadAudio,
-  uploadCubemap,
-  uploadImage,
-  uploadMaterial,
-  uploadModel,
-  uploadScript,
-  uploadVideo,
-  uploadVolumetric
-} from './scene-helper'
 import { cleanSceneDataCacheURLs, parseSceneDataCacheURLs } from './scene-parser'
+import {convertStaticResource} from "./scene-helper";
 
 const NEW_SCENE_NAME = 'New-Scene'
 
@@ -62,7 +50,7 @@ export const getSceneData = async (
 
 interface UpdateParams {
   sceneName: string
-  sceneData?: SceneJson
+  sceneData: SceneJson
   thumbnailBuffer?: ArrayBuffer | Buffer // ArrayBuffer on client, Buffer on server
   storageProviderName?: string
 }
@@ -229,42 +217,7 @@ export class Scene implements ServiceMethods<any> {
       const project = await this.app.service('project').get(projectName, params)
       if (!project.data) throw new Error(`No project named ${projectName} exists`)
 
-      console.log('sceneData', sceneData)
-
-      for (const [, entity] of Object.entries(sceneData!.entities)) {
-        for (const [, component] of Object.entries(entity)) {
-          console.log('entity', entity)
-          switch (component.name) {
-            case 'audio':
-              await uploadAudio(this.app, component, projectName)
-              break
-            case 'video':
-              await uploadVideo(this.app, component, projectName)
-              break
-            case 'volumetric':
-              await uploadVolumetric(this.app, component, projectName)
-              break
-            case 'model':
-              await uploadModel(this.app, component, projectName)
-              break
-            case 'animation':
-              await uploadAnimation(this.app, component, projectName)
-              break
-            case 'material':
-              await uploadMaterial(this.app, component, projectName)
-              break
-            case 'script':
-              await uploadScript(this.app, component, projectName)
-              break
-            case 'cubemap':
-              await uploadCubemap(this.app, component, projectName)
-              break
-            case 'image':
-              await uploadImage(this.app, component, projectName)
-              break
-          }
-        }
-      }
+      await convertStaticResource(this.app, sceneData)
 
       const newSceneJsonPath = `projects/${projectName}/${sceneName}.scene.json`
       await storageProvider.putObject({
