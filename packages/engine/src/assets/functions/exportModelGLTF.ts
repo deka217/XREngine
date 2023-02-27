@@ -32,7 +32,7 @@ export default async function exportModelGLTF(
       },
       {
         ...options,
-        animations: scene.animations
+        animations: scene.animations ?? []
       }
     )
   })

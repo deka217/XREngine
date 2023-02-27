@@ -116,7 +116,7 @@ export default async function PositionalAudioSystem(world: World) {
 
       useEffect(() => {
         if (mediaElement?.value && !panner.value) {
-          const el = getComponent(entity, MediaElementComponent).element
+          const el = getComponent(entity, MediaElementComponent)?.element
           const audioGroup = AudioNodeGroups.get(el)
           if (audioGroup) panner.set(addPannerNode(audioGroup, getComponent(entity, PositionalAudioComponent)))
         } else if (panner.value) {
